@@ -5,7 +5,7 @@ var mappings = [
     ["m"],
     ["r"],
     ["l"],
-    ["sch", "gj", "sj", "sh", "tj", "ch", "j", "g"],
+    ["sch", "stj", "kj", "gj", "sj", "sh", "tj", "ch", "j", "g"],
     ["ck", "g", "k", "q"],
     ["f", "v", "w"],
     ["p", "b"]
