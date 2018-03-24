@@ -1,18 +1,34 @@
 var mappings = [
-    ["s", "z", "c"],
-    ["d", "t"],
-    ["n"],
-    ["m"],
-    ["r"],
-    ["l"],
-    ["sch", "stj", "kj", "gj", "sj", "sh", "tj", "ch", "j", "g"],
-    ["ck", "g", "k", "q"],
-    ["f", "v", "w"],
-    ["p", "b"]
-];
-
-var specialMappings = [
-    ["x", "70"]
+    ["sch", "6"],
+    ["stj", "6"],
+    ["kj", "6"],
+    ["gj", "6"],
+    ["sj", "6"],
+    ["sh", "6"],
+    ["tj", "6"],
+    ["ch", "6"],
+    ["ck", "7"],
+    ["kö", "6"],
+    ["cc", "70"],
+    ["x", "70"],
+    ["j", "6"],
+    ["s", "0"],
+    ["z", "0"],
+    ["c", "0"],
+    ["d", "1"],
+    ["t", "1"],
+    ["n", "2"],
+    ["m", "3"],
+    ["r", "4"],
+    ["l", "5"],
+    ["g", "7"],
+    ["k", "7"],
+    ["q", "7"],
+    ["f", "8"],
+    ["v", "8"],
+    ["w", "8"],
+    ["p", "9"],
+    ["b", "9"]
 ];
 
 var vowels = {"è":1,"á":1,"a":1,"é":1,"e":1,"i":1,"o":1,"u":1,"y":1,"å":1,"ä":1,"ö":1};
@@ -24,26 +40,13 @@ var words = window.words;
 var parseWordIx = function(word, i, lastParse)
 {
     // try special mapping
-    for (n = 0; n < specialMappings.length; n++)
+    for (n = 0; n < mappings.length; n++)
     {
-        mapping = specialMappings[n][0];
+        mapping = mappings[n][0];
 
         if (word.substr(i, mapping.length) == mapping)
         {
-            return [""+specialMappings[n][1], mapping.length];
-        }
-    }
-
-    // try standard mapping
-    for (n = 9; n >= 0; n--)
-    {
-        for (var nk = 0; nk < mappings[n].length; nk++)
-        {
-            mapping = mappings[n][nk];
-            if (word.substr(i, mapping.length) == mapping)
-            {
-                return ["" + n, mapping.length];
-            }
+            return [mappings[n][1], mapping.length];
         }
     }
 
@@ -87,12 +90,19 @@ parseWord = function(word)
 
 var test = function(word, expected)
 {
-    var p = parseWord(word);
+    var p = parseWord(word).substr(0,3);
     if (p !== expected)
     {
         console.log("Err: " + word + " => " + p + " (" + expected + ")");
     }
-}
+};
+
+var runTests = function()
+{
+    test("kjolar", "654");
+    test("köttsaft", "610");
+    test("access", "700");
+};
 
 var gogogo = function()
 {
@@ -130,6 +140,7 @@ var gogogo = function()
         list.push(window.words[i]);
     }
 
+    runTests();
     console.log("Time: " + (Date.now() - startTime)/1000 + " sec");
 };
 
