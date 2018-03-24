@@ -9,7 +9,9 @@ var mappings = [
     ["ch", "6"],
     ["ck", "7"],
     ["kö", "6"],
+    ["lj", "6"],
     ["cc", "70"],
+    ["co", "7"],
     ["x", "70"],
     ["j", "6"],
     ["s", "0"],
@@ -146,22 +148,46 @@ var gogogo = function()
 
 var render = function()
 {
-    var $input = $("<input/>").attr("placeholder", "Läser in ordlistan...");
+    var $input = $("<input/>")
+        .attr("placeholder", "Läser in ordlistan...")
+        .attr("type", "number")
+        .css({
+            "font-family": "arial",
+            "font-size": "1.1em",
+            "margin-bottom": "0.5em"});
+    
     var $result = $("<div/>");
-    $("body").append($input, $result);
+
+    $("body").css("font-family", "arial").append(
+        $input, 
+        $result);
     
     $input.on("input", function()
     {
         var val = $input.val();
         $result.empty();
-        var words = window.dict[val] || ["Inga ord hittade..."];
+
+        var words;
+        if (val.length == 0)
+        {
+            words = [];
+        } else if (val.length != 3)
+        {
+            words = ["Skriv tre siffror"];
+            $result.css("color", "gray");
+        }
+        else 
+        {
+            words = window.dict[val] || ["Inga ord hittade..."];
+            $result.css("color", "black");
+        }
         $result.html(words.join("<br>"));
     });    
 
     window.setTimeout(function()
     {
         gogogo();
-        $($input).attr("placeholder", "Skriv in tre siffror");
+        $($input).attr("placeholder", "Skriv tre siffror");
     },100 );
 };
 $(document).ready(render);
