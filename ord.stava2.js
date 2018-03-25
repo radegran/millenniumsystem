@@ -1,6 +1,7 @@
 var mappings = [
     ["sch", "6"],
     ["stj", "6"],
+    ["lju", "6"],
     ["kj", "6"],
     ["gj", "6"],
     ["sj", "6"],
@@ -9,7 +10,6 @@ var mappings = [
     ["ch", "6"],
     ["ck", "7"],
     ["kö", "6"],
-    ["lj", "6"],
     ["cc", "70"],
     ["co", "7"],
     ["x", "70"],
@@ -33,7 +33,7 @@ var mappings = [
     ["b", "9"]
 ];
 
-var vowels = {"è":1,"á":1,"a":1,"é":1,"e":1,"i":1,"o":1,"u":1,"y":1,"å":1,"ä":1,"ö":1};
+var vowels = {"-":1,"è":1,"á":1,"a":1,"é":1,"e":1,"i":1,"o":1,"u":1,"y":1,"å":1,"ä":1,"ö":1};
 
 window.dict = {};
 var words = window.words;
@@ -57,6 +57,7 @@ var parseWordIx = function(word, i, lastParse)
 
 parseWord = function(word)
 {
+    word = word.toLowerCase();
     var result = "";
     var i, n, k, mapping, lastParse;
 
@@ -73,10 +74,11 @@ parseWord = function(word)
         var parsedNumChars = parsedObj[1];
         i += (parsedNumChars-1);
 
-        if (parsed === "" && word[i] !== "h")
-        {
-            console.log("Unexpected empty parse for: " + word + ", " + i + ", " + lastParse);
-        }
+        // For debug
+        // if (parsed === "" && word[i] !== "h")
+        // {
+        //     console.log("Unexpected empty parse for: " + word + ", " + i + ", " + lastParse);
+        // }
 
         if (parsed == lastParse)
         {
