@@ -1,9 +1,15 @@
 var mappings = [
+    ["ssio", "6"],
     ["sch", "6"],
     ["stj", "6"],
     ["lju", "6"],
+    ["ski", "6"],
+    ["ng", ""],
+    ["ky", "6"],
     ["kj", "6"],
     ["gj", "6"],
+    ["gi", "6"],
+    ["dj", "6"],
     ["sj", "6"],
     ["sh", "6"],
     ["tj", "6"],
@@ -12,6 +18,7 @@ var mappings = [
     ["kö", "6"],
     ["cc", "70"],
     ["co", "7"],
+    ["ca", "7"],
     ["x", "70"],
     ["j", "6"],
     ["s", "0"],
@@ -106,6 +113,16 @@ var runTests = function()
     test("kjolar", "654");
     test("köttsaft", "610");
     test("access", "700");
+    test("casino", "702");
+    test("session", "062");
+    test("kyssen", "602");
+    test("kisande", "602");
+    test("gissning", "602");
+    test("casablanca", "709");
+    test("cd-skiva", "016");
+    test("husdjur", "064");
+    test("symaskin", "036");
+    test("fingret", "841");
 };
 
 var gogogo = function()
