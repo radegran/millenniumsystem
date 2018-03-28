@@ -9,6 +9,7 @@ var mappings = [
     ["skä", "6"],
     ["lju", "6"],
     ["ski", "6"],
+    ["ask", "07"],
     ["ky", "6"],
     ["kj", "6"],
     ["gj", "6"],
@@ -132,6 +133,7 @@ var runTests = function()
     test("skymf", "638");
     test("skägglös", "675");
     test("skeppsbrott", "690");
+    test("mask", "307");
 };
 
 var gogogo = function()
