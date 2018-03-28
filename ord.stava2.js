@@ -75,11 +75,11 @@ parseWord = function(word)
 
     for (i = 0; i < word.length; i++)
     {
-        if (vowels[word[i]])
-        {
-            lastParse = "";
-            continue;
-        }
+        // if (vowels[word[i]])
+        // {
+        //     lastParse = "";
+        //     continue;
+        // }
 
         var parsedObj = parseWordIx(word, i, lastParse);
         var parsed = parsedObj[0];
