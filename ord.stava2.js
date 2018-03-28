@@ -9,7 +9,6 @@ var mappings = [
     ["skä", "6"],
     ["lju", "6"],
     ["ski", "6"],
-    ["ng", ""],
     ["ky", "6"],
     ["kj", "6"],
     ["gj", "6"],
@@ -127,7 +126,7 @@ var runTests = function()
     test("cd-skiva", "016");
     test("husdjur", "064");
     test("symaskin", "036");
-    test("fingret", "841");
+    test("finger", "827");
     test("skjutet", "611");
     test("skörd", "641");
     test("skymf", "638");
