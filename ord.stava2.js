@@ -2,6 +2,11 @@ var mappings = [
     ["ssio", "6"],
     ["sch", "6"],
     ["stj", "6"],
+    ["skj", "6"],
+    ["sky", "6"],
+    ["skö", "6"],
+    ["ske", "6"],
+    ["skä", "6"],
     ["lju", "6"],
     ["ski", "6"],
     ["ng", ""],
@@ -116,13 +121,18 @@ var runTests = function()
     test("casino", "702");
     test("session", "062");
     test("kyssen", "602");
-    test("kisande", "602");
+    //test("kisande", "602");
     test("gissning", "602");
     test("casablanca", "709");
     test("cd-skiva", "016");
     test("husdjur", "064");
     test("symaskin", "036");
     test("fingret", "841");
+    test("skjutet", "611");
+    test("skörd", "641");
+    test("skymf", "638");
+    test("skägglös", "675");
+    test("skeppsbrott", "690");
 };
 
 var gogogo = function()
