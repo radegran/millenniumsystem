@@ -1,3 +1,25 @@
+var flash = function(color, time, className)
+{
+    if (className)
+    {
+        $(className).css("opacity", 0.3).animate({"opacity": 1}, {duration:400});
+        return;
+    }
+    var $body = $("body");
+    var $fader = $("<div/>").css(
+        {
+            "position": "absolute",
+            "height": "100%",
+            "width": "100%",
+            "opacity": 0.5
+        }
+    ).prependTo($body);
+
+    var c = function() { $fader.remove(); };
+    $fader.css("background-color", color)
+        .animate({"opacity": 0}, {duration:time || 'fast', complete:c});
+};
+
 var init = function()
 {
     $(document).off();
@@ -9,8 +31,9 @@ var init = function()
         "padding": 0,
         "height": "100%"
     });
-    var $digit = $("<div/>").text("Tap to start!")
-        .css("margin", "0.5em")
+    var $digit = $("<div/>").addClass("digit")
+        .text("Tap to start!")
+        .css("padding", "0.5em")
         .css("font-size", "4em")
         .css("text-align", "center").appendTo($body);
     var $digitCount = $("<div/>")
@@ -65,6 +88,7 @@ var init = function()
             prevIsError = false;
             recallIx++;
             $done.text(doneText + " (" + recallIx + ")").css("background-color", "lightgreen");
+            flash("lightgreen");
         }
         else
         {
@@ -74,6 +98,7 @@ var init = function()
                 $done.text(doneText + " (WRONG)").css("background-color", "salmon");
                 prevIsError = true;
             }            
+            flash("salmon", "slow");
         }
 
         if ((recallIx-1) === learnIx)
@@ -81,6 +106,7 @@ var init = function()
             $done.text(doneText + " (" + (1 + learnIx - errors) + "/" + (1 + learnIx) + ")").css("background-color", "gold");
             $oneButton.off();
             $zeroButton.off();
+            flash("gold", 1000);
         }
     }
 
@@ -97,11 +123,13 @@ var init = function()
         $digit.remove();
         $digitCount.remove();
         $body.append($zeroButton, $oneButton);
+        flash("gold", 1000);
     };
 
     var onclick = function(e)
     {
         $done.show();
+        flash("#dddddd", 'fast', ".digit");
 
         if (learnIx < 0)
         {
