@@ -1,8 +1,7 @@
 var init = function()
 {
-    $(function() {
-        FastClick.attach(document.body);
-    });
+    $(document).off();
+    $("div").remove();
 
     var $body = $(document.body).css({
         "font-size": "1.5em",
@@ -36,6 +35,15 @@ var init = function()
         "background-color": "lightgreen"
     }).hide().appendTo($body);
     
+    var $f5 = $("<div/>").text("F5").css({
+        "position": "absolute",
+        "bottom": 0,
+        "right": 0,
+        "padding": "0.5em",
+        "background-color": "#f0f0f0"
+    }).appendTo($body);
+    
+    $f5.on("click", function() { window.setTimeout(init, 0); });
     var digits = [];
     for (var i = 0; i < 10000; i++)
     {
@@ -71,7 +79,8 @@ var init = function()
         if ((recallIx-1) === learnIx)
         {
             $done.text(doneText + " (" + (1 + learnIx - errors) + "/" + (1 + learnIx) + ")").css("background-color", "gold");
-            $("*").off();
+            $oneButton.off();
+            $zeroButton.off();
         }
     }
 
@@ -112,4 +121,10 @@ var init = function()
     $done.on("click", ondone);
 };
 
-$(document).ready(init);
+var init1 = function()
+{
+    init();
+    FastClick.attach(document.body);
+}
+
+$(document).ready(init1);
