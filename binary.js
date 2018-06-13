@@ -2,7 +2,7 @@ var flash = function(color, time, className)
 {
     if (className)
     {
-        $(className).css("opacity", 0.3).animate({"opacity": 1}, {duration:400});
+        $(className).css("opacity", 0.2).animate({"opacity": 1}, {duration:300});
         return;
     }
     var $body = $("body");
@@ -68,26 +68,26 @@ var init = function()
     
     $f5.on("click", function() { window.setTimeout(init, 0); });
     var digits = [];
-    for (var i = 0; i < 10000; i++)
-    {
-        digits.push(Math.random() > 0.5 ? 1 : 0);
-    }
 
-    var learnIx = -1;
     var startTime = -1;
-    var recallIx = 0;
+    var recalled = 0;
     var errors = 0;
     var prevIsError = false;
+
+    var progressText = function()
+    {
+        return "(" + recalled + "/" + digits.length + ")";
+    };
 
     var doneText = "";
 
     var recall = function(digit)
     {
-        if (digits[recallIx] === digit)
+        if (digits[recalled] === digit)
         {
             prevIsError = false;
-            recallIx++;
-            $done.text(doneText + " (" + recallIx + ")").css("background-color", "lightgreen");
+            recalled++;
+            $done.text(doneText + " " + progressText()).css("background-color", "lightgreen");
             flash("lightgreen");
         }
         else
@@ -95,15 +95,15 @@ var init = function()
             if (!prevIsError)
             {
                 errors++;
-                $done.text(doneText + " (WRONG)").css("background-color", "salmon");
+                $done.text("Digit " + (recalled + 1) + " is wrong!").css("background-color", "salmon");
                 prevIsError = true;
             }            
             flash("salmon", "slow");
         }
 
-        if ((recallIx-1) === learnIx)
+        if (recalled === digits.length)
         {
-            $done.text(doneText + " (" + (1 + learnIx - errors) + "/" + (1 + learnIx) + ")").css("background-color", "gold");
+            $done.text(doneText + " " + progressText()).css("background-color", "gold");
             $oneButton.off();
             $zeroButton.off();
             flash("gold", 1000);
@@ -116,8 +116,8 @@ var init = function()
     var ondone = function(e)
     {
         e.stopPropagation();
-        doneText = "Done in " + Math.round((Date.now() - startTime)/1000) + "s";
-        $done.text(doneText);
+        doneText = "Time: " + Math.round((Date.now() - startTime)/10)/100 + "s";
+        $done.text(doneText + " " + progressText());
         $done.off();
         $(document).off();
         $digit.remove();
@@ -131,18 +131,16 @@ var init = function()
         $done.show();
         flash("#dddddd", 'fast', ".digit");
 
-        if (learnIx < 0)
+        if (digits.length == 0)
         {
             startTime = Date.now();
         }
         
-        learnIx++;
-        $digit.text(digits[learnIx] + "");
-        $digitCount.text("Digit " + (learnIx+1));
-        if (learnIx == digits.length)
-        {
-            ondone(e);
-        }
+        // A new digit!
+        digits.push(Math.random() > 0.5 ? 1 : 0);
+
+        $digit.text(digits[digits.length-1] + "");
+        $digitCount.text("Digit " + digits.length);
     };
 
     $(document).on("click", onclick);
