@@ -4,6 +4,7 @@ var Bubble = function(x, y, r, fillColor)
 {
     var shape = new Path.Circle(new Point(x, y), r);
     shape.fillColor = fillColor || (Math.random() > 0.5 ? "maroon" : "salmon");
+    
     return {
         shape: shape
     }
@@ -23,7 +24,7 @@ var Game = function(canvas)
 
     var canvasHeight = window.innerHeight;
 
-    var ballSpeed = 8;
+    var ballSpeed = 12;
     var radius = canvasHeight/40;
     var ballsPerRow = 10;
     var ballsPerColumn = 12;
@@ -135,6 +136,8 @@ var Game = function(canvas)
         hexGrid[hexY][hexX] = bubble;
     };
 
+    var fallingBubbles = [];
+
     var tryKillBubbles = function(hexX, hexY)
     {
         var thisHex = {x:hexX,y:hexY};
@@ -166,18 +169,42 @@ var Game = function(canvas)
 
         if (count > 2)
         {
+            var shootingBubble = getBubble(hexX, hexY);
+
             var keys = Object.keys(counted);
             for (var i = 0; i < keys.length; i++)
             {
                 var hexP = JSON.parse(keys[i]);
                 var bubble = getBubble(hexP.x, hexP.y);
-                bubble.shape.remove();
+                bubble.shape.bringToFront();
+                bubble.vx = shootingBubble.vx;
+                bubble.vy = shootingBubble.vy;
+                fallingBubbles.push(bubble);
                 hexGrid[hexP.y][hexP.x] = null;
             }
         }
     };
     
     view.onFrame = function(event) {
+
+        var now = Date.now();
+
+        for (var i = 0; i < fallingBubbles.length; i++)
+        {
+            var f = fallingBubbles[i];
+            f.startFallTime = f.startFallTime || now;
+            if (now - f.startFallTime > 5000)
+            {
+                f.shape.remove();
+                fallingBubbles.splice(i, 1);
+                i--;
+                continue;
+            }
+
+            var p = f.shape.position;
+            f.shape.position = new Point(p.x + f.vx, p.y + f.vy);
+            f.vy += 0.5;
+        }
 
         if (shooting)
         {
