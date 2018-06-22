@@ -1,10 +1,19 @@
-var Bubble = function(x, y, radius)
+var colors = []
+
+var Bubble = function(x, y, r, fillColor)
 {
-    var shape = new Path.Circle(new Point(x, y), radius);
-    shape.fillColor = Math.random() > 0.5 ? "gold" : "salmon";
+    var shape = new Path.Circle(new Point(x, y), r);
+    shape.fillColor = fillColor || (Math.random() > 0.5 ? "maroon" : "salmon");
     return {
         shape: shape
     }
+};
+
+var debug = function(id, p, r, fillColor)
+{
+    if (!debug.elem) { debug.elem = {}; }
+    if (!debug.elem[id]) { debug.elem[id] = Bubble(p.x, p.y, r, fillColor); }
+    debug.elem[id].shape.position = new Point(p.x, p.y);
 };
 
 var Game = function(canvas)
@@ -14,22 +23,22 @@ var Game = function(canvas)
 
     var canvasHeight = window.innerHeight;
 
-    var ballSpeed = 5;
+    var ballSpeed = 8;
     var radius = canvasHeight/40;
     var ballsPerRow = 10;
     var ballsPerColumn = 12;
     
     var boardWidth = ballsPerRow * (radius * 2);
-    var boardTop = 20;
-    var boardLeft = 30;
+    var boardTop = 30;
+    var boardLeft = 20;
 
     var hexGrid = [];
 
     var pointToHex = function(point)
     {
-        var hexY = Math.round((point.y - boardLeft - radius) / (Math.sqrt(3)*radius) );
+        var hexY = Math.round((point.y - boardTop - radius) / (Math.sqrt(3)*radius) );
         var isOdd = (hexY % 2 == 1);
-        var hexX = Math.round((point.x - boardTop - radius - (isOdd ? radius : 0)) / (2*radius));
+        var hexX = Math.round((point.x - boardLeft - radius - (isOdd ? radius : 0)) / (2*radius));
         return {"x": hexX, "y": hexY};
     };
 
@@ -135,17 +144,15 @@ var Game = function(canvas)
             var hexX = hexPoint.x;
             var hexY = hexPoint.y;
 
-console.log(hexX + ", " + hexY)
-
-            for (var i = hexY - 1; i < hexY + 1; i++)
+            for (var i = hexY - 1; i <= hexY + 1; i++)
             {
-                for (var j = hexX - 1; j < hexX + 1; j++)
+                for (var j = hexX - 1; j <= hexX + 1; j++)
                 {
+                    //debug("hex" + (j-hexX) + "," + (i - hexY), hexToPoint({x:hexX,y:hexY}), radius*0.8, "red");
+                        
                     var bubble = getBubble(i, j)
                     if (bubble)
                     {
-                        bubble.shape.fillColor = "red";
-
                         var bp = bubble.shape.position;
                         var dist = Math.sqrt((bp.x - point.x)*(bp.x - point.x) + (bp.y - point.y)*(bp.y - point.y));
                         if (dist < 2*radius*0.9)
@@ -165,11 +172,10 @@ console.log(hexX + ", " + hexY)
                                 canvasHeight - 3*radius,
                                 radius
                             );
+                            playerBall.shape.sendToBack();
                             shooting = false;
                             return;
                         }
-
-                        bubble.shape.fillColor = "green";
                     }
                 }        
             }
