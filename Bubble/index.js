@@ -44,14 +44,25 @@ var Game = function(canvas)
 
     var hexToPoint = function(hex)
     {
-        var isOdd = hex.y % 2 == 1;
+        var isOdd = (100+hex.y) % 2 == 1;
         var x = boardLeft + radius + (2*radius*hex.x) + (isOdd ? radius : 0);
         var y = boardTop + radius + (Math.sqrt(3)*radius*hex.y);
         return {"x": x, "y": y};
     };
 
-    window.hextopoint = hexToPoint;
-    window.pointtohex = pointToHex;
+    var adjacentHex = function(hexX, hexY)
+    {
+        var center = hexToPoint({x:hexX, y:hexY});
+        var list = [];
+        for (var i = 0; i < 6; i++)
+        {
+            var x = center.x + 2*radius*Math.cos(2*3.1415*i/6);
+            var y = center.y + 2*radius*Math.sin(2*3.1415*i/6);
+
+            list.push(pointToHex({x:x, y:y}));
+        }
+        return list;
+    };
 
     for (var row = 0; row < ballsPerColumn; row++)
     {        
@@ -62,7 +73,8 @@ var Game = function(canvas)
         for (var col = 0; col < ballsInThisRow; col++)
         {       
             var p = hexToPoint({x:col, y:row});
-            r.push(Bubble(p.x, p.y, radius));
+            var bubble = Bubble(p.x, p.y, radius);
+            r.push(bubble);
         }
 
         hexGrid.push(r);
@@ -91,10 +103,10 @@ var Game = function(canvas)
 
     var getBubble = function(hexX, hexY)
     {
-        var row = hexGrid[hexX];
+        var row = hexGrid[hexY];
         if (row)
         {
-            return row[hexY];
+            return row[hexX];
         }
         return null;
     };
@@ -113,14 +125,56 @@ var Game = function(canvas)
             row = hexGrid[hexY];
         }
             
-        var col = hexGrid[hexX];
-        while (!col)
+        var col = row[hexX];
+        while (col !== null)
         {
-            hexGrid.push(null);
-            col = hexGrid[hexX];
+            row.push(null);
+            col = row[hexX];
         }
 
         hexGrid[hexY][hexX] = bubble;
+    };
+
+    var tryKillBubbles = function(hexX, hexY)
+    {
+        var thisHex = {x:hexX,y:hexY};
+        var thiskey = JSON.stringify(thisHex);
+        var counted = {};
+        counted[thiskey] = true;
+        var count = 1;
+        var startcolor = getBubble(hexX, hexY).shape.fillColor;
+
+        var recurse = function(hx, hy)
+        {
+            var list = adjacentHex(hx, hy);
+            for (var i = 0; i < list.length; i++)
+            {
+                var b = getBubble(list[i].x, list[i].y);
+                var key = JSON.stringify(list[i]);
+                if (b && b.shape.fillColor.toString() === startcolor.toString() && !counted[key])
+                {
+                    // connected, same color, not counted!
+                    count++;
+                    counted[key] = true;
+                    recurse(list[i].x, list[i].y)
+                }
+                
+            }
+        };
+
+        recurse(hexX, hexY);
+
+        if (count > 2)
+        {
+            var keys = Object.keys(counted);
+            for (var i = 0; i < keys.length; i++)
+            {
+                var hexP = JSON.parse(keys[i]);
+                var bubble = getBubble(hexP.x, hexP.y);
+                bubble.shape.remove();
+                hexGrid[hexP.y][hexP.x] = null;
+            }
+        }
     };
     
     view.onFrame = function(event) {
@@ -150,22 +204,18 @@ var Game = function(canvas)
                 {
                     //debug("hex" + (j-hexX) + "," + (i - hexY), hexToPoint({x:hexX,y:hexY}), radius*0.8, "red");
                         
-                    var bubble = getBubble(i, j)
+                    var bubble = getBubble(j, i)
                     if (bubble)
                     {
                         var bp = bubble.shape.position;
                         var dist = Math.sqrt((bp.x - point.x)*(bp.x - point.x) + (bp.y - point.y)*(bp.y - point.y));
                         if (dist < 2*radius*0.9)
                         {
+                            // Collision!
                             setBubble(playerBall, hexX, hexY);
                             var quant = hexToPoint(hexPoint);
                             var newp = new Point(quant.x, quant.y);
                             playerBall.shape.position = newp;
-
-                            if (Math.sqrt((newp.x - point.x)*(newp.x - point.x) + (newp.y - point.y)*(newp.y - point.y)) > 1.5*radius)
-                            {
-                                //var klas = 42;
-                            }
 
                             playerBall = Bubble(
                                 boardLeft + ballsPerRow*radius,
@@ -174,6 +224,8 @@ var Game = function(canvas)
                             );
                             playerBall.shape.sendToBack();
                             shooting = false;
+
+                            tryKillBubbles(hexX, hexY);
                             return;
                         }
                     }
