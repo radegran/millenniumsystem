@@ -1,0 +1,20 @@
+<!DOCTYPE html>
+<meta charset="UTF-8">
+<html style="height:100%;margin:0">
+<head>
+<!-- Load the Paper.js library -->
+<script type="text/javascript" src="paper-full.min.js"></script>
+<script type="text/javascript" src="index.js"></script>
+<!-- Define inlined JavaScript -->
+<script type="text/javascript">
+	// Only executed our code once the DOM is ready.
+	window.onload = function() {
+        var game = Game(document.getElementById('myCanvas'));
+        game.start();
+	}
+</script>
+</head>
+<body style="height:100%;margin:0;overflow-y:hidden;">
+	<canvas style="height:100%; widht:100%" id="myCanvas" resize></canvas>
+</body>
+</html>
