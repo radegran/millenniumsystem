@@ -6,7 +6,7 @@ var colors = [
     "#0000cc", // dark blue
     "#ff944d", // orange
     "#00b33c", // dark green
-    "#ff66ff", // purple
+    "#cc00ff", // purple
     "#66ccff", // light blue
     "#8cff66", // light green
 ];
