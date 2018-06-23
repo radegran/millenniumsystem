@@ -13,13 +13,23 @@ var getRandomColor = function()
     return colors[Math.floor(Math.random()*colors.length)];
 };
 
-var Bubble = function(x, y, r, fillColor)
+var Bubble = function(x, y, r, fill)
 {
+    var s = new Path.Circle(new Point(x+4, y+4), r);
     var shape = new Path.Circle(new Point(x, y), r);
-    shape.fillColor = fillColor || getRandomColor();
+    var fillColor = fill || getRandomColor();
+
+    var group = new Group({
+        children: [s, shape]
+    });
+
+    group.fillColor = fillColor
+    group.translate(-2, -2);
+    s.fillColor = "black";
     
     return {
-        shape: shape
+        shape: group,
+        color: fillColor
     }
 };
 
@@ -100,6 +110,23 @@ var Game = function(canvas)
         radius
     );
 
+    var fixZIndex = function()
+    {
+        var current = null;
+        for (var i = 0; i < hexGrid.length; i++)
+        {
+            for (var j = 0; j < hexGrid[i].length; j++)
+            {
+                var b = hexGrid[i][j];
+                if (b && current)
+                {
+                    b.shape.insertAbove(current.shape);
+                }
+                current = b;
+            }
+        }
+    }
+
     var shooting = false;
 
     view.onMouseDown = function(event)
@@ -157,7 +184,7 @@ var Game = function(canvas)
         var thiskey = JSON.stringify(startHex);
         var counted = {};
         counted[thiskey] = true;
-        var startcolor = getBubble(startHex.x, startHex.y).shape.fillColor;
+        var startcolor = getBubble(startHex.x, startHex.y).color;
 
         var recurse = function(hx, hy)
         {
@@ -184,11 +211,11 @@ var Game = function(canvas)
     var tryKillBubbles = function(hexX, hexY)
     {
         var hexP = {x:hexX, y:hexY}
-        var thisColorString = getBubble(hexX, hexY).shape.fillColor.toString();
+        var thisColorString = getBubble(hexX, hexY).color.toString();
 
         var sameColorPredicate = function(bubble)
         {
-            return bubble.shape.fillColor.toString() == thisColorString;
+            return bubble.color.toString() == thisColorString;
         };
 
         // Kill all with same color
@@ -309,8 +336,9 @@ var Game = function(canvas)
                                 canvasHeight - 3*radius,
                                 radius
                             );
-                            playerBall.shape.sendToBack();
                             shooting = false;
+
+                            fixZIndex();
 
                             tryKillBubbles(hexX, hexY);
                             return;
