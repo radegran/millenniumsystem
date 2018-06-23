@@ -1,10 +1,7 @@
 var colors = [
-    "#000000",
     "#ffff00", // yellow
     "#ff80d5", // pink
     "#ff0000", // red
-    "#0000cc", // dark blue
-    "#ff944d", // orange
     "#00b33c", // dark green
     "#cc00ff", // purple
     "#66ccff", // light blue
