@@ -178,8 +178,8 @@ var Game = function(canvas)
             return bubble.shape.fillColor.toString() == thisColorString;
         };
 
+        // Kill all with same color
         var connected = findConnected(hexP, sameColorPredicate);
-
         if (connected.length > 2)
         {
             var shootingBubble = getBubble(hexX, hexY);
@@ -194,7 +194,42 @@ var Game = function(canvas)
                 fallingBubbles.push(bubble);
                 hexGrid[hexP.y][hexP.x] = null;
             }
+
+            // Kill all dangling
+            var topRow = hexGrid[0];
+            var connectedDict = {};
+            for (var i = 0; i < topRow.length; i++)
+            {
+                //var topBubble = getBubble(i, 0);
+                if (getBubble(i, 0))
+                {
+                    findConnected({x:i,y:0}, function() { return true; })
+                        .map(function(hexP) { connectedDict[JSON.stringify(hexP)] = true; });
+                }
+            }
+
+            for (var i = 0; i < hexGrid.length; i++)
+            {
+                for (var j = 0; j < hexGrid[i].length; j++)
+                {
+                    var hexP = {x:j,y:i};
+                    if (!connectedDict[JSON.stringify(hexP)])
+                    {
+                        var bubble = hexGrid[i][j];
+                        if (bubble)
+                        {
+                            // This is dangling!            
+                            bubble.vx = shootingBubble.vx;
+                            bubble.vy = shootingBubble.vy * 0;
+                            fallingBubbles.push(bubble);
+                            hexGrid[hexP.y][hexP.x] = null;
+                        }
+                    }
+                }    
+            }
         }
+
+
     };
     
     view.onFrame = function(event) {
