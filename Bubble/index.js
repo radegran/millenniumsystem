@@ -138,14 +138,13 @@ var Game = function(canvas)
 
     var fallingBubbles = [];
 
-    var tryKillBubbles = function(hexX, hexY)
+    // Returns list of connected bubbles in hexCoordinates
+    var findConnected = function(startHex, predicate)
     {
-        var thisHex = {x:hexX,y:hexY};
-        var thiskey = JSON.stringify(thisHex);
+        var thiskey = JSON.stringify(startHex);
         var counted = {};
         counted[thiskey] = true;
-        var count = 1;
-        var startcolor = getBubble(hexX, hexY).shape.fillColor;
+        var startcolor = getBubble(startHex.x, startHex.y).shape.fillColor;
 
         var recurse = function(hx, hy)
         {
@@ -154,10 +153,9 @@ var Game = function(canvas)
             {
                 var b = getBubble(list[i].x, list[i].y);
                 var key = JSON.stringify(list[i]);
-                if (b && b.shape.fillColor.toString() === startcolor.toString() && !counted[key])
+                if (b && !counted[key] && predicate(b))
                 {
                     // connected, same color, not counted!
-                    count++;
                     counted[key] = true;
                     recurse(list[i].x, list[i].y)
                 }
@@ -165,16 +163,30 @@ var Game = function(canvas)
             }
         };
 
-        recurse(hexX, hexY);
+        recurse(startHex.x, startHex.y);
 
-        if (count > 2)
+        return Object.keys(counted).map(function(key) { return JSON.parse(key); });
+    };
+
+    var tryKillBubbles = function(hexX, hexY)
+    {
+        var hexP = {x:hexX, y:hexY}
+        var thisColorString = getBubble(hexX, hexY).shape.fillColor.toString();
+
+        var sameColorPredicate = function(bubble)
+        {
+            return bubble.shape.fillColor.toString() == thisColorString;
+        };
+
+        var connected = findConnected(hexP, sameColorPredicate);
+
+        if (connected.length > 2)
         {
             var shootingBubble = getBubble(hexX, hexY);
 
-            var keys = Object.keys(counted);
-            for (var i = 0; i < keys.length; i++)
+            for (var i = 0; i < connected.length; i++)
             {
-                var hexP = JSON.parse(keys[i]);
+                var hexP = connected[i];
                 var bubble = getBubble(hexP.x, hexP.y);
                 bubble.shape.bringToFront();
                 bubble.vx = shootingBubble.vx;
