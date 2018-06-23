@@ -8,6 +8,9 @@ var colors = [
     "#8cff66", // light green
 ];
 
+var shootSound = new buzz.sound("http://soundbible.com/grab.php?id=930&type=mp3");
+var fallBubbleSound = new buzz.sound("http://soundbible.com/grab.php?id=85&type=mp3");
+
 var getRandomColor = function()
 {
     return colors[Math.floor(Math.random()*colors.length)];
@@ -133,6 +136,7 @@ var Game = function(canvas)
     {
         if (!shooting)
         {
+            shootSound.stop().play();
             shooting = true;
             var vx = event.point.x - playerBall.shape.position.x;
             var vy = event.point.y - playerBall.shape.position.y;
@@ -222,6 +226,7 @@ var Game = function(canvas)
         var connected = findConnected(hexP, sameColorPredicate);
         if (connected.length > 2)
         {
+            fallBubbleSound.stop().play();
             var shootingBubble = getBubble(hexX, hexY);
 
             for (var i = 0; i < connected.length; i++)
