@@ -1,9 +1,25 @@
-var colors = []
+var colors = [
+    "#000000",
+    "#ffff00", // yellow
+    "#ff80d5", // pink
+    "#ff0000", // red
+    "#0000cc", // dark blue
+    "#ff944d", // orange
+    "#00b33c", // dark green
+    "#ff66ff", // purple
+    "#66ccff", // light blue
+    "#8cff66", // light green
+];
+
+var getRandomColor = function()
+{
+    return colors[Math.floor(Math.random()*colors.length)];
+};
 
 var Bubble = function(x, y, r, fillColor)
 {
     var shape = new Path.Circle(new Point(x, y), r);
-    shape.fillColor = fillColor || (Math.random() > 0.5 ? "maroon" : "salmon");
+    shape.fillColor = fillColor || getRandomColor();
     
     return {
         shape: shape
