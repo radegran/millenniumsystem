@@ -1,0 +1,12 @@
+{
+    "scripts": {
+        "tsc": "./node_modules/typescript/bin/tsc"
+    },
+    "devDependencies": {
+        "@types/node": "^10.3.5",
+        "typescript": "^2.9.2"
+    },
+    "dependencies": {
+        "@types/paper": "^0.9.15"
+    }
+}

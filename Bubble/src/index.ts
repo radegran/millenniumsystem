@@ -43,6 +43,25 @@ var debug = function(id, p, r, fillColor)
     debug.elem[id].shape.position = new Point(p.x, p.y);
 };
 
+var HexGrid = function(origo, radius)
+{
+    var pointToHex = function(point)
+    {
+        var hexY = Math.round((point.y - boardTop - radius) / (Math.sqrt(3)*radius) );
+        var isOdd = (hexY % 2 == 1);
+        var hexX = Math.round((point.x - boardLeft - radius - (isOdd ? radius : 0)) / (2*radius));
+        return {"x": hexX, "y": hexY};
+    };
+
+    var hexToPoint = function(hex)
+    {
+        var isOdd = (100+hex.y) % 2 == 1;
+        var x = boardLeft + radius + (2*radius*hex.x) + (isOdd ? radius : 0);
+        var y = boardTop + radius + (Math.sqrt(3)*radius*hex.y);
+        return {"x": x, "y": y};
+    };
+};
+
 var Game = function(canvas)
 {
     paper.install(window)
