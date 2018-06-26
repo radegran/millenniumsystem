@@ -1,3 +1,4 @@
+
 let colors = [
     "#ffff00", // yellow
     "#ff80d5", // pink
@@ -27,6 +28,11 @@ type HexPoint = {
     x: number,
     y: number
 }
+
+let HexPoint = function(x, y)
+{
+    return {x:x, y:y};
+};
 
 let Bubble = function(point: paper.Point, radius: number, fill?: string) :Bubble
 {
@@ -111,9 +117,9 @@ let Game = function(canvas)
         return new paper.Point(x, y);
     };
 
-    let adjacentHex = function(hexX, hexY)
+    let adjacentHex = function(hexPoint: HexPoint) : Array<HexPoint>
     {
-        let center = hexToPoint({x:hexX, y:hexY});
+        let center = hexToPoint(hexPoint);
         let list = [];
         for (let i = 0; i < 6; i++)
         {
@@ -181,38 +187,38 @@ let Game = function(canvas)
         }        
     }
 
-    let getBubble = function(hexX, hexY)
+    let getBubble = function(hexPoint: HexPoint) : Bubble
     {
-        let row = hexGrid[hexY];
+        let row = hexGrid[hexPoint.y];
         if (row)
         {
-            return row[hexX];
+            return row[hexPoint.x];
         }
         return null;
     };
 
-    let setBubble = function(bubble, hexX, hexY)
+    let setBubble = function(bubble: Bubble, hexPoint: HexPoint) : void
     {
-        if (hexX < 0 || hexY < 0)
+        if (hexPoint.x < 0 || hexPoint.y < 0)
         {
             throw "no can do";
         }
 
-        let row = hexGrid[hexY];
+        let row = hexGrid[hexPoint.y];
         while (!row)
         {
             hexGrid.push([]);
-            row = hexGrid[hexY];
+            row = hexGrid[hexPoint.y];
         }
             
-        let col = row[hexX];
+        let col = row[hexPoint.x];
         while (col !== null)
         {
             row.push(null);
-            col = row[hexX];
+            col = row[hexPoint.x];
         }
 
-        hexGrid[hexY][hexX] = bubble;
+        hexGrid[hexPoint.y][hexPoint.x] = bubble;
     };
 
     let fallingBubbles = [];
@@ -224,32 +230,30 @@ let Game = function(canvas)
         let counted = {};
         counted[thiskey] = true;
         
-        let recurse = function(hx, hy)
+        let recurse = function(h: HexPoint) : void
         {
-            let list = adjacentHex(hx, hy);
+            let list = adjacentHex(h);
             for (let i = 0; i < list.length; i++)
             {
-                let b = getBubble(list[i].x, list[i].y);
+                let b = getBubble(list[i]);
                 let key = JSON.stringify(list[i]);
                 if (b && !counted[key] && predicate(b))
                 {
                     // connected, same color, not counted!
                     counted[key] = true;
-                    recurse(list[i].x, list[i].y)
+                    recurse(list[i]);
                 }
-                
             }
         };
 
-        recurse(startHex.x, startHex.y);
+        recurse(startHex);
 
         return Object.keys(counted).map(function(key) { return JSON.parse(key); });
     };
 
-    let tryKillBubbles = function(hexX, hexY)
+    let tryKillBubbles = function(hexPoint: HexPoint) : void
     {
-        let hexP = {x:hexX, y:hexY}
-        let thisColorString = getBubble(hexX, hexY).color.toString();
+        let thisColorString = getBubble(hexPoint).color.toString();
 
         let sameColorPredicate = function(bubble)
         {
@@ -257,17 +261,17 @@ let Game = function(canvas)
         };
 
         // Kill all with same color
-        let connected = findConnected(hexP, sameColorPredicate);
+        let connected = findConnected(hexPoint, sameColorPredicate);
         if (connected.length > 2)
         {
             fallBubbleSound.stop()
             fallBubbleSound.play();
-            let shootingBubble = getBubble(hexX, hexY);
+            let shootingBubble = getBubble(hexPoint);
 
             for (let i = 0; i < connected.length; i++)
             {
                 let hexP = connected[i];
-                let bubble = getBubble(hexP.x, hexP.y);
+                let bubble = getBubble(hexP);
                 bubble.shape.bringToFront();
                 bubble.vx = shootingBubble.vx;
                 bubble.vy = shootingBubble.vy;
@@ -280,8 +284,7 @@ let Game = function(canvas)
             let connectedDict = {};
             for (let i = 0; i < topRow.length; i++)
             {
-                //let topBubble = getBubble(i, 0);
-                if (getBubble(i, 0))
+                if (getBubble(HexPoint(i, 0)))
                 {
                     findConnected({x:i,y:0}, function() { return true; })
                         .map(function(hexP) { connectedDict[JSON.stringify(hexP)] = true; });
@@ -356,9 +359,7 @@ let Game = function(canvas)
             {
                 for (let j = hexX - 1; j <= hexX + 1; j++)
                 {
-                    //debug("hex" + (j-hexX) + "," + (i - hexY), hexToPoint({x:hexX,y:hexY}), radius*0.8, "red");
-                        
-                    let bubble = getBubble(j, i)
+                    let bubble = getBubble(HexPoint(j, i))
                     if (bubble)
                     {
                         let bp = bubble.shape.position;
@@ -366,7 +367,7 @@ let Game = function(canvas)
                         if (dist < 2*radius*0.9)
                         {
                             // Collision!
-                            setBubble(playerBall, hexX, hexY);
+                            setBubble(playerBall, hexPoint);
                             let quant = hexToPoint(hexPoint);
                             let newp = new paper.Point(quant.x, quant.y);
                             playerBall.shape.position = newp;
@@ -380,7 +381,7 @@ let Game = function(canvas)
 
                             fixZIndex();
 
-                            tryKillBubbles(hexX, hexY);
+                            tryKillBubbles(hexPoint);
                             return;
                         }
                     }
