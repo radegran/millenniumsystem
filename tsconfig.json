@@ -1,7 +1,7 @@
 {
     "compilerOptions": {
       "target": "ES5",
-      "module": "system",
+      "module": "none",
       "moduleResolution": "node",
       "sourceMap": true,
       "emitDecoratorMetadata": true,
@@ -16,6 +16,7 @@
     ],
     "include": [
       "node_modules/@types/paper/index.d.ts",
-      "Bubble/src"
+      "Bubble/src",
+      "Bubble/types"
     ]
   }

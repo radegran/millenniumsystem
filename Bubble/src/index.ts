@@ -1,4 +1,4 @@
-var colors = [
+let colors = [
     "#ffff00", // yellow
     "#ff80d5", // pink
     "#ff0000", // red
@@ -8,138 +8,153 @@ var colors = [
     "#8cff66", // light green
 ];
 
-var shootSound = new buzz.sound("http://soundbible.com/grab.php?id=930&type=mp3");
-var fallBubbleSound = new buzz.sound("http://soundbible.com/grab.php?id=85&type=mp3");
+let shootSound = new buzz.sound("http://soundbible.com/grab.php?id=930&type=mp3");
+let fallBubbleSound = new buzz.sound("http://soundbible.com/grab.php?id=85&type=mp3");
 
-var getRandomColor = function()
+let getRandomColor = function()
 {
     return colors[Math.floor(Math.random()*colors.length)];
 };
 
-var Bubble = function(x, y, r, fill)
-{
-    var s = new Path.Circle(new Point(x+4, y+4), r);
-    var shape = new Path.Circle(new Point(x, y), r);
-    var fillColor = fill || getRandomColor();
+type Bubble = {
+    shape: paper.Group,
+    color: string,
+    vx: number,
+    vy: number
+}
 
-    var group = new Group({
+type HexPoint = {
+    x: number,
+    y: number
+}
+
+let Bubble = function(point: paper.Point, radius: number, fill?: string) :Bubble
+{
+    let s = new paper.Path.Circle(point.clone().add([4, 4]), radius);
+    let shape = new paper.Path.Circle(point.clone(), radius);
+    let fillColor = fill || getRandomColor();
+
+    let group = new paper.Group({
         children: [s, shape]
     });
 
     group.fillColor = fillColor
-    group.translate(-2, -2);
+    group.translate(new paper.Point(-2, -2));
     s.fillColor = "black";
     
     return {
         shape: group,
-        color: fillColor
-    }
-};
-
-var debug = function(id, p, r, fillColor)
-{
-    if (!debug.elem) { debug.elem = {}; }
-    if (!debug.elem[id]) { debug.elem[id] = Bubble(p.x, p.y, r, fillColor); }
-    debug.elem[id].shape.position = new Point(p.x, p.y);
-};
-
-var HexGrid = function(origo, radius)
-{
-    var pointToHex = function(point)
-    {
-        var hexY = Math.round((point.y - boardTop - radius) / (Math.sqrt(3)*radius) );
-        var isOdd = (hexY % 2 == 1);
-        var hexX = Math.round((point.x - boardLeft - radius - (isOdd ? radius : 0)) / (2*radius));
-        return {"x": hexX, "y": hexY};
-    };
-
-    var hexToPoint = function(hex)
-    {
-        var isOdd = (100+hex.y) % 2 == 1;
-        var x = boardLeft + radius + (2*radius*hex.x) + (isOdd ? radius : 0);
-        var y = boardTop + radius + (Math.sqrt(3)*radius*hex.y);
-        return {"x": x, "y": y};
+        color: fillColor,
+        vx: 0,
+        vy: 0
     };
 };
 
-var Game = function(canvas)
+// let debug = function(id, p, r, fillColor)
+// {
+//     if (!debug.elem) { debug.elem = {}; }
+//     if (!debug.elem[id]) { debug.elem[id] = Bubble(p.x, p.y, r, fillColor); }
+//     debug.elem[id].shape.position = new paper.Point(p.x, p.y);
+// };
+
+// let HexGrid = function(origo, radius)
+// {
+//     let pointToHex = function(point)
+//     {
+//         let hexY = Math.round((point.y - boardTop - radius) / (Math.sqrt(3)*radius) );
+//         let isOdd = (hexY % 2 == 1);
+//         let hexX = Math.round((point.x - boardLeft - radius - (isOdd ? radius : 0)) / (2*radius));
+//         return {"x": hexX, "y": hexY};
+//     };
+
+//     let hexToPoint = function(hex)
+//     {
+//         let isOdd = (100+hex.y) % 2 == 1;
+//         let x = boardLeft + radius + (2*radius*hex.x) + (isOdd ? radius : 0);
+//         let y = boardTop + radius + (Math.sqrt(3)*radius*hex.y);
+//         return {"x": x, "y": y};
+//     };
+// };
+
+let Game = function(canvas)
 {
     paper.install(window)
     paper.setup(canvas);
+    let view = paper.view;
 
-    var canvasHeight = window.innerHeight;
+    let canvasHeight = window.innerHeight;
 
-    var ballSpeed = 12;
-    var radius = canvasHeight/40;
-    var ballsPerRow = 10;
-    var ballsPerColumn = 12;
+    let ballSpeed = 12;
+    let radius = canvasHeight/40;
+    let ballsPerRow = 10;
+    let ballsPerColumn = 12;
     
-    var boardWidth = ballsPerRow * (radius * 2);
-    var boardTop = 30;
-    var boardLeft = 20;
+    let boardWidth = ballsPerRow * (radius * 2);
+    let boardTop = 30;
+    let boardLeft = 20;
 
-    var hexGrid = [];
+    let hexGrid = [];
 
-    var pointToHex = function(point)
+    let pointToHex = function(point: paper.Point) : HexPoint
     {
-        var hexY = Math.round((point.y - boardTop - radius) / (Math.sqrt(3)*radius) );
-        var isOdd = (hexY % 2 == 1);
-        var hexX = Math.round((point.x - boardLeft - radius - (isOdd ? radius : 0)) / (2*radius));
+        let hexY = Math.round((point.y - boardTop - radius) / (Math.sqrt(3)*radius) );
+        let isOdd = (hexY % 2 == 1);
+        let hexX = Math.round((point.x - boardLeft - radius - (isOdd ? radius : 0)) / (2*radius));
         return {"x": hexX, "y": hexY};
     };
 
-    var hexToPoint = function(hex)
+    let hexToPoint = function(hex: HexPoint) : paper.Point
     {
-        var isOdd = (100+hex.y) % 2 == 1;
-        var x = boardLeft + radius + (2*radius*hex.x) + (isOdd ? radius : 0);
-        var y = boardTop + radius + (Math.sqrt(3)*radius*hex.y);
-        return {"x": x, "y": y};
+        let isOdd = (100+hex.y) % 2 == 1;
+        let x = boardLeft + radius + (2*radius*hex.x) + (isOdd ? radius : 0);
+        let y = boardTop + radius + (Math.sqrt(3)*radius*hex.y);
+        return new paper.Point(x, y);
     };
 
-    var adjacentHex = function(hexX, hexY)
+    let adjacentHex = function(hexX, hexY)
     {
-        var center = hexToPoint({x:hexX, y:hexY});
-        var list = [];
-        for (var i = 0; i < 6; i++)
+        let center = hexToPoint({x:hexX, y:hexY});
+        let list = [];
+        for (let i = 0; i < 6; i++)
         {
-            var x = center.x + 2*radius*Math.cos(2*3.1415*i/6);
-            var y = center.y + 2*radius*Math.sin(2*3.1415*i/6);
+            let x = center.x + 2*radius*Math.cos(2*3.1415*i/6);
+            let y = center.y + 2*radius*Math.sin(2*3.1415*i/6);
 
-            list.push(pointToHex({x:x, y:y}));
+            list.push(pointToHex(new paper.Point(x, y)));
         }
         return list;
     };
 
-    for (var row = 0; row < ballsPerColumn; row++)
+    for (let row = 0; row < ballsPerColumn; row++)
     {        
-        var r = [];
-        var isOdd = row % 2 == 1;
-        var ballsInThisRow = ballsPerRow - (isOdd ? 1 : 0);
+        let r = [];
+        let isOdd = row % 2 == 1;
+        let ballsInThisRow = ballsPerRow - (isOdd ? 1 : 0);
     
-        for (var col = 0; col < ballsInThisRow; col++)
+        for (let col = 0; col < ballsInThisRow; col++)
         {       
-            var p = hexToPoint({x:col, y:row});
-            var bubble = Bubble(p.x, p.y, radius);
+            let p = hexToPoint({x:col, y:row});
+            let bubble = Bubble(p, radius);
             r.push(bubble);
         }
 
         hexGrid.push(r);
     }
 
-    var playerBall = Bubble(
-        boardLeft + ballsPerRow*radius,
-        canvasHeight - 3*radius,
+    let playerBall = Bubble(
+        new paper.Point(boardLeft + ballsPerRow*radius,
+                  canvasHeight - 3*radius),
         radius
     );
 
-    var fixZIndex = function()
+    let fixZIndex = function()
     {
-        var current = null;
-        for (var i = 0; i < hexGrid.length; i++)
+        let current = null;
+        for (let i = 0; i < hexGrid.length; i++)
         {
-            for (var j = 0; j < hexGrid[i].length; j++)
+            for (let j = 0; j < hexGrid[i].length; j++)
             {
-                var b = hexGrid[i][j];
+                let b = hexGrid[i][j];
                 if (b && current)
                 {
                     b.shape.insertAbove(current.shape);
@@ -149,25 +164,26 @@ var Game = function(canvas)
         }
     }
 
-    var shooting = false;
+    let shooting = false;
 
     view.onMouseDown = function(event)
     {
         if (!shooting)
         {
-            shootSound.stop().play();
+            shootSound.stop()
+            shootSound.play();
             shooting = true;
-            var vx = event.point.x - playerBall.shape.position.x;
-            var vy = event.point.y - playerBall.shape.position.y;
-            var dist = Math.sqrt(vx*vx + vy*vy) / ballSpeed;
+            let vx = event.point.x - playerBall.shape.position.x;
+            let vy = event.point.y - playerBall.shape.position.y;
+            let dist = Math.sqrt(vx*vx + vy*vy) / ballSpeed;
             playerBall.vx = vx / dist;
             playerBall.vy = vy / dist;
         }        
     }
 
-    var getBubble = function(hexX, hexY)
+    let getBubble = function(hexX, hexY)
     {
-        var row = hexGrid[hexY];
+        let row = hexGrid[hexY];
         if (row)
         {
             return row[hexX];
@@ -175,21 +191,21 @@ var Game = function(canvas)
         return null;
     };
 
-    var setBubble = function(bubble, hexX, hexY)
+    let setBubble = function(bubble, hexX, hexY)
     {
         if (hexX < 0 || hexY < 0)
         {
             throw "no can do";
         }
 
-        var row = hexGrid[hexY];
+        let row = hexGrid[hexY];
         while (!row)
         {
             hexGrid.push([]);
             row = hexGrid[hexY];
         }
             
-        var col = row[hexX];
+        let col = row[hexX];
         while (col !== null)
         {
             row.push(null);
@@ -199,23 +215,22 @@ var Game = function(canvas)
         hexGrid[hexY][hexX] = bubble;
     };
 
-    var fallingBubbles = [];
+    let fallingBubbles = [];
 
     // Returns list of connected bubbles in hexCoordinates
-    var findConnected = function(startHex, predicate)
+    let findConnected = function(startHex: HexPoint, predicate: (Bubble) => boolean) : Array<HexPoint>
     {
-        var thiskey = JSON.stringify(startHex);
-        var counted = {};
+        let thiskey = JSON.stringify(startHex);
+        let counted = {};
         counted[thiskey] = true;
-        var startcolor = getBubble(startHex.x, startHex.y).color;
-
-        var recurse = function(hx, hy)
+        
+        let recurse = function(hx, hy)
         {
-            var list = adjacentHex(hx, hy);
-            for (var i = 0; i < list.length; i++)
+            let list = adjacentHex(hx, hy);
+            for (let i = 0; i < list.length; i++)
             {
-                var b = getBubble(list[i].x, list[i].y);
-                var key = JSON.stringify(list[i]);
+                let b = getBubble(list[i].x, list[i].y);
+                let key = JSON.stringify(list[i]);
                 if (b && !counted[key] && predicate(b))
                 {
                     // connected, same color, not counted!
@@ -231,27 +246,28 @@ var Game = function(canvas)
         return Object.keys(counted).map(function(key) { return JSON.parse(key); });
     };
 
-    var tryKillBubbles = function(hexX, hexY)
+    let tryKillBubbles = function(hexX, hexY)
     {
-        var hexP = {x:hexX, y:hexY}
-        var thisColorString = getBubble(hexX, hexY).color.toString();
+        let hexP = {x:hexX, y:hexY}
+        let thisColorString = getBubble(hexX, hexY).color.toString();
 
-        var sameColorPredicate = function(bubble)
+        let sameColorPredicate = function(bubble)
         {
             return bubble.color.toString() == thisColorString;
         };
 
         // Kill all with same color
-        var connected = findConnected(hexP, sameColorPredicate);
+        let connected = findConnected(hexP, sameColorPredicate);
         if (connected.length > 2)
         {
-            fallBubbleSound.stop().play();
-            var shootingBubble = getBubble(hexX, hexY);
+            fallBubbleSound.stop()
+            fallBubbleSound.play();
+            let shootingBubble = getBubble(hexX, hexY);
 
-            for (var i = 0; i < connected.length; i++)
+            for (let i = 0; i < connected.length; i++)
             {
-                var hexP = connected[i];
-                var bubble = getBubble(hexP.x, hexP.y);
+                let hexP = connected[i];
+                let bubble = getBubble(hexP.x, hexP.y);
                 bubble.shape.bringToFront();
                 bubble.vx = shootingBubble.vx;
                 bubble.vy = shootingBubble.vy;
@@ -260,11 +276,11 @@ var Game = function(canvas)
             }
 
             // Kill all dangling
-            var topRow = hexGrid[0];
-            var connectedDict = {};
-            for (var i = 0; i < topRow.length; i++)
+            let topRow = hexGrid[0];
+            let connectedDict = {};
+            for (let i = 0; i < topRow.length; i++)
             {
-                //var topBubble = getBubble(i, 0);
+                //let topBubble = getBubble(i, 0);
                 if (getBubble(i, 0))
                 {
                     findConnected({x:i,y:0}, function() { return true; })
@@ -272,14 +288,14 @@ var Game = function(canvas)
                 }
             }
 
-            for (var i = 0; i < hexGrid.length; i++)
+            for (let i = 0; i < hexGrid.length; i++)
             {
-                for (var j = 0; j < hexGrid[i].length; j++)
+                for (let j = 0; j < hexGrid[i].length; j++)
                 {
-                    var hexP = {x:j,y:i};
+                    let hexP = {x:j,y:i};
                     if (!connectedDict[JSON.stringify(hexP)])
                     {
-                        var bubble = hexGrid[i][j];
+                        let bubble = hexGrid[i][j];
                         if (bubble)
                         {
                             // This is dangling!            
@@ -298,11 +314,11 @@ var Game = function(canvas)
     
     view.onFrame = function(event) {
 
-        var now = Date.now();
+        let now = Date.now();
 
-        for (var i = 0; i < fallingBubbles.length; i++)
+        for (let i = 0; i < fallingBubbles.length; i++)
         {
-            var f = fallingBubbles[i];
+            let f = fallingBubbles[i];
             f.startFallTime = f.startFallTime || now;
             if (now - f.startFallTime > 5000)
             {
@@ -312,16 +328,16 @@ var Game = function(canvas)
                 continue;
             }
 
-            var p = f.shape.position;
-            f.shape.position = new Point(p.x + f.vx, p.y + f.vy);
+            let p = f.shape.position;
+            f.shape.position = new paper.Point(p.x + f.vx, p.y + f.vy);
             f.vy += 0.5;
         }
 
         if (shooting)
         {
             // update velocity
-            var p = playerBall.shape.position;
-            playerBall.shape.position = new Point(p.x + playerBall.vx, p.y + playerBall.vy);
+            let p = playerBall.shape.position;
+            playerBall.shape.position = new paper.Point(p.x + playerBall.vx, p.y + playerBall.vy);
             
             p = playerBall.shape.position;
 
@@ -331,33 +347,33 @@ var Game = function(canvas)
             }
 
             // collision test
-            var point = playerBall.shape.position;
-            var hexPoint = pointToHex(point);
-            var hexX = hexPoint.x;
-            var hexY = hexPoint.y;
+            let point = playerBall.shape.position;
+            let hexPoint = pointToHex(point);
+            let hexX = hexPoint.x;
+            let hexY = hexPoint.y;
 
-            for (var i = hexY - 1; i <= hexY + 1; i++)
+            for (let i = hexY - 1; i <= hexY + 1; i++)
             {
-                for (var j = hexX - 1; j <= hexX + 1; j++)
+                for (let j = hexX - 1; j <= hexX + 1; j++)
                 {
                     //debug("hex" + (j-hexX) + "," + (i - hexY), hexToPoint({x:hexX,y:hexY}), radius*0.8, "red");
                         
-                    var bubble = getBubble(j, i)
+                    let bubble = getBubble(j, i)
                     if (bubble)
                     {
-                        var bp = bubble.shape.position;
-                        var dist = Math.sqrt((bp.x - point.x)*(bp.x - point.x) + (bp.y - point.y)*(bp.y - point.y));
+                        let bp = bubble.shape.position;
+                        let dist = Math.sqrt((bp.x - point.x)*(bp.x - point.x) + (bp.y - point.y)*(bp.y - point.y));
                         if (dist < 2*radius*0.9)
                         {
                             // Collision!
                             setBubble(playerBall, hexX, hexY);
-                            var quant = hexToPoint(hexPoint);
-                            var newp = new Point(quant.x, quant.y);
+                            let quant = hexToPoint(hexPoint);
+                            let newp = new paper.Point(quant.x, quant.y);
                             playerBall.shape.position = newp;
 
                             playerBall = Bubble(
-                                boardLeft + ballsPerRow*radius,
-                                canvasHeight - 3*radius,
+                                new paper.Point(boardLeft + ballsPerRow*radius,
+                                          canvasHeight - 3*radius),
                                 radius
                             );
                             shooting = false;
@@ -373,7 +389,7 @@ var Game = function(canvas)
         }
     }
 
-    var start = function()
+    let start = function()
     {
 
     };
