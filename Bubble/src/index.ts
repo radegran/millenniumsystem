@@ -1,60 +1,6 @@
-
-let colors = [
-    "#ffff00", // yellow
-    "#ff80d5", // pink
-    "#ff0000", // red
-    "#00b33c", // dark green
-    "#cc00ff", // purple
-    "#66ccff", // light blue
-    "#8cff66", // light green
-];
-
-let shootSound = new buzz.sound("http://soundbible.com/grab.php?id=930&type=mp3");
-let fallBubbleSound = new buzz.sound("http://soundbible.com/grab.php?id=85&type=mp3");
-
-let getRandomColor = function()
-{
-    return colors[Math.floor(Math.random()*colors.length)];
-};
-
-type Bubble = {
-    shape: paper.Group,
-    color: string,
-    vx: number,
-    vy: number
-}
-
-type HexPoint = {
-    x: number,
-    y: number
-}
-
-let HexPoint = function(x, y)
-{
-    return {x:x, y:y};
-};
-
-let Bubble = function(point: paper.Point, radius: number, fill?: string) :Bubble
-{
-    let s = new paper.Path.Circle(point.clone().add([4, 4]), radius);
-    let shape = new paper.Path.Circle(point.clone(), radius);
-    let fillColor = fill || getRandomColor();
-
-    let group = new paper.Group({
-        children: [s, shape]
-    });
-
-    group.fillColor = fillColor
-    group.translate(new paper.Point(-2, -2));
-    s.fillColor = "black";
-    
-    return {
-        shape: group,
-        color: fillColor,
-        vx: 0,
-        vy: 0
-    };
-};
+/// <reference path="model.ts"/>
+/// <reference path="graphics.ts"/>
+/// <reference path="sound.ts"/>
 
 // let debug = function(id, p, r, fillColor)
 // {
@@ -82,10 +28,11 @@ let Bubble = function(point: paper.Point, radius: number, fill?: string) :Bubble
 //     };
 // };
 
-let Game = function(canvas)
+let Game = function()
 {
-    paper.install(window)
-    paper.setup(canvas);
+    let gameView = Graphics.View(<HTMLCanvasElement>document.getElementById('myCanvas'));
+    // paper.install(window)
+    // paper.setup(canvas);
     let view = paper.view;
 
     let canvasHeight = window.innerHeight;
@@ -140,14 +87,14 @@ let Game = function(canvas)
         for (let col = 0; col < ballsInThisRow; col++)
         {       
             let p = hexToPoint({x:col, y:row});
-            let bubble = Bubble(p, radius);
+            let bubble = Graphics.Bubble(p, radius);
             r.push(bubble);
         }
 
         hexGrid.push(r);
     }
 
-    let playerBall = Bubble(
+    let playerBall = Graphics.Bubble(
         new paper.Point(boardLeft + ballsPerRow*radius,
                   canvasHeight - 3*radius),
         radius
@@ -176,8 +123,8 @@ let Game = function(canvas)
     {
         if (!shooting)
         {
-            shootSound.stop()
-            shootSound.play();
+            Sound.shootSound.stop()
+            Sound.shootSound.play();
             shooting = true;
             let vx = event.point.x - playerBall.shape.position.x;
             let vy = event.point.y - playerBall.shape.position.y;
@@ -187,7 +134,7 @@ let Game = function(canvas)
         }        
     }
 
-    let getBubble = function(hexPoint: HexPoint) : Bubble
+    let getBubble = function(hexPoint: HexPoint) : Graphics.Bubble
     {
         let row = hexGrid[hexPoint.y];
         if (row)
@@ -197,7 +144,7 @@ let Game = function(canvas)
         return null;
     };
 
-    let setBubble = function(bubble: Bubble, hexPoint: HexPoint) : void
+    let setBubble = function(bubble: Graphics.Bubble, hexPoint: HexPoint) : void
     {
         if (hexPoint.x < 0 || hexPoint.y < 0)
         {
@@ -264,8 +211,8 @@ let Game = function(canvas)
         let connected = findConnected(hexPoint, sameColorPredicate);
         if (connected.length > 2)
         {
-            fallBubbleSound.stop()
-            fallBubbleSound.play();
+            Sound.fallBubbleSound.stop()
+            Sound.fallBubbleSound.play();
             let shootingBubble = getBubble(hexPoint);
 
             for (let i = 0; i < connected.length; i++)
@@ -372,7 +319,7 @@ let Game = function(canvas)
                             let newp = new paper.Point(quant.x, quant.y);
                             playerBall.shape.position = newp;
 
-                            playerBall = Bubble(
+                            playerBall = Graphics.Bubble(
                                 new paper.Point(boardLeft + ballsPerRow*radius,
                                           canvasHeight - 3*radius),
                                 radius
@@ -399,3 +346,8 @@ let Game = function(canvas)
         "start": start
     };
 };
+
+let init = function()
+{
+    Game();
+}

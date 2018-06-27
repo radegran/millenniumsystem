@@ -9,15 +9,17 @@
       "removeComments": false,
       "noImplicitAny": false,
       "types": ["node"],
-      "outFile": "Bubble/bundle.js"
+      "outFile": "Bubble/bundle.js",
+      "allowSyntheticDefaultImports": false
     },
     "exclude": [
-      /* "node_modules", */
-      ".npm"
+      //"node_modules",
+      ".npm",
+      //"Bubble/src"
     ],
     "include": [
+      "Bubble/src/index.ts",
       "node_modules/@types/paper/index.d.ts",
-      "Bubble/src",
-      "Bubble/types"
+      "node_modules/@types/html-entities/index.d.ts"
     ]
   }

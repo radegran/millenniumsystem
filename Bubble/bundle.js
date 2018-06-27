@@ -1,37 +1,55 @@
-var colors = [
-    "#ffff00",
-    "#ff80d5",
-    "#ff0000",
-    "#00b33c",
-    "#cc00ff",
-    "#66ccff",
-    "#8cff66",
-];
-var shootSound = new buzz.sound("http://soundbible.com/grab.php?id=930&type=mp3");
-var fallBubbleSound = new buzz.sound("http://soundbible.com/grab.php?id=85&type=mp3");
-var getRandomColor = function () {
-    return colors[Math.floor(Math.random() * colors.length)];
+var Point = function (x, y) {
+    return { x: x, y: y };
 };
 var HexPoint = function (x, y) {
     return { x: x, y: y };
 };
-var Bubble = function (point, radius, fill) {
-    var s = new paper.Path.Circle(point.clone().add([4, 4]), radius);
-    var shape = new paper.Path.Circle(point.clone(), radius);
-    var fillColor = fill || getRandomColor();
-    var group = new paper.Group({
-        children: [s, shape]
-    });
-    group.fillColor = fillColor;
-    group.translate(new paper.Point(-2, -2));
-    s.fillColor = "black";
-    return {
-        shape: group,
-        color: fillColor,
-        vx: 0,
-        vy: 0
+var Graphics;
+(function (Graphics) {
+    Graphics.Colors = [
+        "#ffff00",
+        "#ff80d5",
+        "#ff0000",
+        "#00b33c",
+        "#cc00ff",
+        "#66ccff",
+        "#8cff66",
+    ];
+    Graphics.getRandomColor = function () {
+        return Graphics.Colors[Math.floor(Math.random() * Graphics.Colors.length)];
     };
-};
+    Graphics.Bubble = function (point, radius, fill) {
+        var s = new paper.Path.Circle(point.clone().add([4, 4]), radius);
+        var shape = new paper.Path.Circle(point.clone(), radius);
+        var fillColor = fill || Graphics.getRandomColor();
+        var group = new paper.Group({
+            children: [s, shape]
+        });
+        group.fillColor = fillColor;
+        group.translate(new paper.Point(-2, -2));
+        s.fillColor = "black";
+        return {
+            shape: group,
+            color: fillColor,
+            vx: 0,
+            vy: 0
+        };
+    };
+    Graphics.View = function (canvas) {
+        paper.install(window);
+        paper.setup(canvas);
+        return {};
+    };
+})(Graphics || (Graphics = {}));
+/// <reference path="../types/buzz.d.ts"/>
+var Sound;
+(function (Sound) {
+    Sound.shootSound = new buzz.sound("http://soundbible.com/grab.php?id=930&type=mp3");
+    Sound.fallBubbleSound = new buzz.sound("http://soundbible.com/grab.php?id=85&type=mp3");
+})(Sound || (Sound = {}));
+/// <reference path="model.ts"/>
+/// <reference path="graphics.ts"/>
+/// <reference path="sound.ts"/>
 // let debug = function(id, p, r, fillColor)
 // {
 //     if (!debug.elem) { debug.elem = {}; }
@@ -55,9 +73,10 @@ var Bubble = function (point, radius, fill) {
 //         return {"x": x, "y": y};
 //     };
 // };
-var Game = function (canvas) {
-    paper.install(window);
-    paper.setup(canvas);
+var Game = function () {
+    var gameView = Graphics.View(document.getElementById('myCanvas'));
+    // paper.install(window)
+    // paper.setup(canvas);
     var view = paper.view;
     var canvasHeight = window.innerHeight;
     var ballSpeed = 12;
@@ -96,12 +115,12 @@ var Game = function (canvas) {
         var ballsInThisRow = ballsPerRow - (isOdd ? 1 : 0);
         for (var col = 0; col < ballsInThisRow; col++) {
             var p = hexToPoint({ x: col, y: row });
-            var bubble = Bubble(p, radius);
+            var bubble = Graphics.Bubble(p, radius);
             r.push(bubble);
         }
         hexGrid.push(r);
     }
-    var playerBall = Bubble(new paper.Point(boardLeft + ballsPerRow * radius, canvasHeight - 3 * radius), radius);
+    var playerBall = Graphics.Bubble(new paper.Point(boardLeft + ballsPerRow * radius, canvasHeight - 3 * radius), radius);
     var fixZIndex = function () {
         var current = null;
         for (var i = 0; i < hexGrid.length; i++) {
@@ -117,8 +136,8 @@ var Game = function (canvas) {
     var shooting = false;
     view.onMouseDown = function (event) {
         if (!shooting) {
-            shootSound.stop();
-            shootSound.play();
+            Sound.shootSound.stop();
+            Sound.shootSound.play();
             shooting = true;
             var vx = event.point.x - playerBall.shape.position.x;
             var vy = event.point.y - playerBall.shape.position.y;
@@ -179,8 +198,8 @@ var Game = function (canvas) {
         // Kill all with same color
         var connected = findConnected(hexPoint, sameColorPredicate);
         if (connected.length > 2) {
-            fallBubbleSound.stop();
-            fallBubbleSound.play();
+            Sound.fallBubbleSound.stop();
+            Sound.fallBubbleSound.play();
             var shootingBubble = getBubble(hexPoint);
             for (var i = 0; i < connected.length; i++) {
                 var hexP = connected[i];
@@ -257,7 +276,7 @@ var Game = function (canvas) {
                             var quant = hexToPoint(hexPoint);
                             var newp = new paper.Point(quant.x, quant.y);
                             playerBall.shape.position = newp;
-                            playerBall = Bubble(new paper.Point(boardLeft + ballsPerRow * radius, canvasHeight - 3 * radius), radius);
+                            playerBall = Graphics.Bubble(new paper.Point(boardLeft + ballsPerRow * radius, canvasHeight - 3 * radius), radius);
                             shooting = false;
                             fixZIndex();
                             tryKillBubbles(hexPoint);
@@ -273,5 +292,8 @@ var Game = function (canvas) {
     return {
         "start": start
     };
+};
+var init = function () {
+    Game();
 };
 //# sourceMappingURL=bundle.js.map

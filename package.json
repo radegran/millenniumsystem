@@ -3,6 +3,7 @@
         "tsc": "./node_modules/typescript/bin/tsc"
     },
     "devDependencies": {
+        "@types/html-entities": "^1.2.16",
         "@types/node": "^10.3.5",
         "typescript": "^2.9.2"
     },
