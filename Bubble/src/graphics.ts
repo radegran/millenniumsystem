@@ -1,10 +1,6 @@
 
 namespace Graphics {
 
-    export type View = {
-
-    }
-
     export let Colors = [
         "#ffff00", // yellow
         "#ff80d5", // pink
@@ -49,11 +45,41 @@ namespace Graphics {
         };
     };
 
-    export let View = function(canvas: HTMLCanvasElement) : View
+    export class View 
     {
-        paper.install(window)
+        private canvas: Canvas;
+
+        constructor(canvas: Canvas)
+        {
+            this.canvas = canvas;
+        }
+    };
+
+    type Canvas = {
+        onFrame: (callback: () => void) => void,
+        onClick: (callback: (point: Point) => void) => void,
+        width: number;
+        height: number;
+    }
+
+    export let setupCanvas = function(canvas: HTMLCanvasElement) : Canvas
+    {
+        paper.install(window);
         paper.setup(canvas);
 
-        return {};
-    }
+        return {
+            onFrame: function(callback) { 
+                paper.view.onFrame = function() { callback(); } 
+            },
+            onClick: function(callback) { 
+                paper.view.onMouseDown = function(event) { 
+                    callback(new Point(event.point.x, event.point.y))
+                }
+            },
+            width: window.innerWidth,
+            height: window.innerHeight
+        };
+    };
+
+
 }

@@ -1,4 +1,4 @@
-    class Point {
+class Point {
     private _x: number;
     private _y: number;
 

@@ -85,10 +85,29 @@ var Graphics;
             vy: 0
         };
     };
-    Graphics.View = function (canvas) {
+    var View = /** @class */ (function () {
+        function View(canvas) {
+            this.canvas = canvas;
+        }
+        return View;
+    }());
+    Graphics.View = View;
+    ;
+    Graphics.setupCanvas = function (canvas) {
         paper.install(window);
         paper.setup(canvas);
-        return {};
+        return {
+            onFrame: function (callback) {
+                paper.view.onFrame = function () { callback(); };
+            },
+            onClick: function (callback) {
+                paper.view.onMouseDown = function (event) {
+                    callback(new Point(event.point.x, event.point.y));
+                };
+            },
+            width: window.innerWidth,
+            height: window.innerHeight
+        };
     };
 })(Graphics || (Graphics = {}));
 /// <reference path="../types/buzz.d.ts"/>
@@ -100,54 +119,24 @@ var Sound;
 /// <reference path="model.ts"/>
 /// <reference path="graphics.ts"/>
 /// <reference path="sound.ts"/>
-// let debug = function(id, p, r, fillColor)
-// {
-//     if (!debug.elem) { debug.elem = {}; }
-//     if (!debug.elem[id]) { debug.elem[id] = Bubble(p.x, p.y, r, fillColor); }
-//     debug.elem[id].shape.position = new paper.Point(p.x, p.y);
-// };
-// let HexGrid = function(origo, radius)
-// {
-//     let pointToHex = function(point)
-//     {
-//         let hexY = Math.round((point.y - boardTop - radius) / (Math.sqrt(3)*radius) );
-//         let isOdd = (hexY % 2 == 1);
-//         let hexX = Math.round((point.x - boardLeft - radius - (isOdd ? radius : 0)) / (2*radius));
-//         return {"x": hexX, "y": hexY};
-//     };
-//     let hexToPoint = function(hex)
-//     {
-//         let isOdd = (100+hex.y) % 2 == 1;
-//         let x = boardLeft + radius + (2*radius*hex.x) + (isOdd ? radius : 0);
-//         let y = boardTop + radius + (Math.sqrt(3)*radius*hex.y);
-//         return {"x": x, "y": y};
-//     };
-// };
-var Game = function () {
-    var gameView = Graphics.View(document.getElementById('myCanvas'));
-    // paper.install(window)
-    // paper.setup(canvas);
-    var view = paper.view;
-    var canvasHeight = window.innerHeight;
+var init = function () {
+    var canvas = Graphics.setupCanvas(document.getElementById('myCanvas'));
+    var gameView = new Graphics.View(canvas);
     var ballSpeed = 12;
-    var radius = canvasHeight / 40;
+    var radius = canvas.height / 40;
     var ballsPerRow = 10;
     var ballsPerColumn = 12;
     var boardWidth = ballsPerRow * (radius * 2);
     var boardTop = 30;
     var boardLeft = 20;
     var hexGrid = [];
+    var hexTransformer = new HexTransformer(new Point(boardLeft, boardTop), radius);
     var pointToHex = function (point) {
-        var hexY = Math.round((point.y - boardTop - radius) / (Math.sqrt(3) * radius));
-        var isOdd = (hexY % 2 == 1);
-        var hexX = Math.round((point.x - boardLeft - radius - (isOdd ? radius : 0)) / (2 * radius));
-        return new HexPoint(hexX, hexY);
+        return hexTransformer.toHex(new Point(point.x, point.y));
     };
     var hexToPoint = function (hex) {
-        var isOdd = (100 + hex.y) % 2 == 1;
-        var x = boardLeft + radius + (2 * radius * hex.x) + (isOdd ? radius : 0);
-        var y = boardTop + radius + (Math.sqrt(3) * radius * hex.y);
-        return new paper.Point(x, y);
+        var p = hexTransformer.ToPoint(hex);
+        return new paper.Point(p.x, p.y);
     };
     var adjacentHex = function (hexPoint) {
         var center = hexToPoint(hexPoint);
@@ -170,7 +159,7 @@ var Game = function () {
         }
         hexGrid.push(r);
     }
-    var playerBall = Graphics.Bubble(new paper.Point(boardLeft + ballsPerRow * radius, canvasHeight - 3 * radius), radius);
+    var playerBall = Graphics.Bubble(new paper.Point(boardLeft + ballsPerRow * radius, canvas.height - 3 * radius), radius);
     var fixZIndex = function () {
         var current = null;
         for (var i = 0; i < hexGrid.length; i++) {
@@ -184,18 +173,18 @@ var Game = function () {
         }
     };
     var shooting = false;
-    view.onMouseDown = function (event) {
+    canvas.onClick(function (point) {
         if (!shooting) {
             Sound.shootSound.stop();
             Sound.shootSound.play();
             shooting = true;
-            var vx = event.point.x - playerBall.shape.position.x;
-            var vy = event.point.y - playerBall.shape.position.y;
+            var vx = point.x - playerBall.shape.position.x;
+            var vy = point.y - playerBall.shape.position.y;
             var dist = Math.sqrt(vx * vx + vy * vy) / ballSpeed;
             playerBall.vx = vx / dist;
             playerBall.vy = vy / dist;
         }
-    };
+    });
     var getBubble = function (hexPoint) {
         var row = hexGrid[hexPoint.y];
         if (row) {
@@ -213,7 +202,7 @@ var Game = function () {
             row = hexGrid[hexPoint.y];
         }
         var col = row[hexPoint.x];
-        while (col !== null) {
+        while (typeof col === "undefined") {
             row.push(null);
             col = row[hexPoint.x];
         }
@@ -288,7 +277,7 @@ var Game = function () {
             }
         }
     };
-    view.onFrame = function (event) {
+    canvas.onFrame(function () {
         for (var i = 0; i < fallingBubbles.length; i++) {
             var f = fallingBubbles[i];
             var p = f.shape.position;
@@ -326,7 +315,7 @@ var Game = function () {
                             var quant = hexToPoint(hexPoint);
                             var newp = new paper.Point(quant.x, quant.y);
                             playerBall.shape.position = newp;
-                            playerBall = Graphics.Bubble(new paper.Point(boardLeft + ballsPerRow * radius, canvasHeight - 3 * radius), radius);
+                            playerBall = Graphics.Bubble(new paper.Point(boardLeft + ballsPerRow * radius, canvas.height - 3 * radius), radius);
                             shooting = false;
                             fixZIndex();
                             tryKillBubbles(hexPoint);
@@ -336,14 +325,6 @@ var Game = function () {
                 }
             }
         }
-    };
-    var start = function () {
-    };
-    return {
-        "start": start
-    };
-};
-var init = function () {
-    Game();
+    });
 };
 //# sourceMappingURL=bundle.js.map
