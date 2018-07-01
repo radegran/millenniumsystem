@@ -12,7 +12,7 @@
     mute(): void;
     unmute(): void;
     toggleMute(): void;
-    isMuted(); bool;
+    isMuted(): boolean;
     setVolume(volume: number): void;
     getVolume(): number;
     increaseVolume(volume?: number): void;
@@ -59,7 +59,7 @@ interface Group {
     mute(): void;
     unmute(): void;
     toggleMute(): void;
-    isMuted(); bool;
+    isMuted(): boolean;
     setVolume(volume: number): void;
     increaseVolume(volume?: number): void;
     decreaseVolume(volume?: number): void;

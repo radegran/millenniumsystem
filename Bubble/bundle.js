@@ -1,9 +1,59 @@
-var Point = function (x, y) {
-    return { x: x, y: y };
-};
-var HexPoint = function (x, y) {
-    return { x: x, y: y };
-};
+var Point = /** @class */ (function () {
+    function Point(x, y) {
+        this._x = x;
+        this._y = y;
+    }
+    Object.defineProperty(Point.prototype, "x", {
+        get: function () { return this._x; },
+        enumerable: true,
+        configurable: true
+    });
+    Object.defineProperty(Point.prototype, "y", {
+        get: function () { return this._y; },
+        enumerable: true,
+        configurable: true
+    });
+    return Point;
+}());
+;
+var HexPoint = /** @class */ (function () {
+    function HexPoint(x, y) {
+        this._x = x;
+        this._y = y;
+    }
+    Object.defineProperty(HexPoint.prototype, "x", {
+        get: function () { return this._x; },
+        enumerable: true,
+        configurable: true
+    });
+    Object.defineProperty(HexPoint.prototype, "y", {
+        get: function () { return this._y; },
+        enumerable: true,
+        configurable: true
+    });
+    return HexPoint;
+}());
+;
+var HexTransformer = /** @class */ (function () {
+    function HexTransformer(origo, hexRadius) {
+        this.origo = origo;
+        this.hexRadius = hexRadius;
+    }
+    HexTransformer.prototype.toHex = function (point) {
+        var hexY = Math.round((point.y - this.origo.y - this.hexRadius) / (Math.sqrt(3) * this.hexRadius));
+        var isOdd = (hexY % 2 == 1);
+        var hexX = Math.round((point.x - this.origo.x - this.hexRadius - (isOdd ? this.hexRadius : 0)) / (2 * this.hexRadius));
+        return new HexPoint(hexX, hexY);
+    };
+    HexTransformer.prototype.ToPoint = function (hex) {
+        var isOdd = (100 + hex.y) % 2 == 1;
+        var x = this.origo.x + this.hexRadius + (2 * this.hexRadius * hex.x) + (isOdd ? this.hexRadius : 0);
+        var y = this.origo.y + this.hexRadius + (Math.sqrt(3) * this.hexRadius * hex.y);
+        return new Point(x, y);
+    };
+    ;
+    return HexTransformer;
+}());
 var Graphics;
 (function (Graphics) {
     Graphics.Colors = [
@@ -91,7 +141,7 @@ var Game = function () {
         var hexY = Math.round((point.y - boardTop - radius) / (Math.sqrt(3) * radius));
         var isOdd = (hexY % 2 == 1);
         var hexX = Math.round((point.x - boardLeft - radius - (isOdd ? radius : 0)) / (2 * radius));
-        return { "x": hexX, "y": hexY };
+        return new HexPoint(hexX, hexY);
     };
     var hexToPoint = function (hex) {
         var isOdd = (100 + hex.y) % 2 == 1;
@@ -114,7 +164,7 @@ var Game = function () {
         var isOdd = row % 2 == 1;
         var ballsInThisRow = ballsPerRow - (isOdd ? 1 : 0);
         for (var col = 0; col < ballsInThisRow; col++) {
-            var p = hexToPoint({ x: col, y: row });
+            var p = hexToPoint(new HexPoint(col, row));
             var bubble = Graphics.Bubble(p, radius);
             r.push(bubble);
         }
@@ -175,6 +225,7 @@ var Game = function () {
         var thiskey = JSON.stringify(startHex);
         var counted = {};
         counted[thiskey] = true;
+        var connected = [startHex];
         var recurse = function (h) {
             var list = adjacentHex(h);
             for (var i = 0; i < list.length; i++) {
@@ -183,12 +234,13 @@ var Game = function () {
                 if (b && !counted[key] && predicate(b)) {
                     // connected, same color, not counted!
                     counted[key] = true;
+                    connected.push(list[i]);
                     recurse(list[i]);
                 }
             }
         };
         recurse(startHex);
-        return Object.keys(counted).map(function (key) { return JSON.parse(key); });
+        return connected;
     };
     var tryKillBubbles = function (hexPoint) {
         var thisColorString = getBubble(hexPoint).color.toString();
@@ -214,14 +266,14 @@ var Game = function () {
             var topRow = hexGrid[0];
             var connectedDict_1 = {};
             for (var i = 0; i < topRow.length; i++) {
-                if (getBubble(HexPoint(i, 0))) {
-                    findConnected({ x: i, y: 0 }, function () { return true; })
+                if (getBubble(new HexPoint(i, 0))) {
+                    findConnected(new HexPoint(i, 0), function () { return true; })
                         .map(function (hexP) { connectedDict_1[JSON.stringify(hexP)] = true; });
                 }
             }
             for (var i = 0; i < hexGrid.length; i++) {
                 for (var j = 0; j < hexGrid[i].length; j++) {
-                    var hexP = { x: j, y: i };
+                    var hexP = new HexPoint(j, i);
                     if (!connectedDict_1[JSON.stringify(hexP)]) {
                         var bubble = hexGrid[i][j];
                         if (bubble) {
@@ -237,17 +289,15 @@ var Game = function () {
         }
     };
     view.onFrame = function (event) {
-        var now = Date.now();
         for (var i = 0; i < fallingBubbles.length; i++) {
             var f = fallingBubbles[i];
-            f.startFallTime = f.startFallTime || now;
-            if (now - f.startFallTime > 5000) {
+            var p = f.shape.position;
+            if (p.x > 1000) {
                 f.shape.remove();
                 fallingBubbles.splice(i, 1);
                 i--;
                 continue;
             }
-            var p = f.shape.position;
             f.shape.position = new paper.Point(p.x + f.vx, p.y + f.vy);
             f.vy += 0.5;
         }
@@ -266,7 +316,7 @@ var Game = function () {
             var hexY = hexPoint.y;
             for (var i = hexY - 1; i <= hexY + 1; i++) {
                 for (var j = hexX - 1; j <= hexX + 1; j++) {
-                    var bubble = getBubble(HexPoint(j, i));
+                    var bubble = getBubble(new HexPoint(j, i));
                     if (bubble) {
                         var bp = bubble.shape.position;
                         var dist = Math.sqrt((bp.x - point.x) * (bp.x - point.x) + (bp.y - point.y) * (bp.y - point.y));

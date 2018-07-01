@@ -30,6 +30,8 @@
 
 let Game = function()
 {
+    
+
     let gameView = Graphics.View(<HTMLCanvasElement>document.getElementById('myCanvas'));
     // paper.install(window)
     // paper.setup(canvas);
@@ -46,16 +48,16 @@ let Game = function()
     let boardTop = 30;
     let boardLeft = 20;
 
-    let hexGrid = [];
+    let hexGrid : Array<Array<Graphics.Bubble>> = [];
 
     let pointToHex = function(point: paper.Point) : HexPoint
     {
         let hexY = Math.round((point.y - boardTop - radius) / (Math.sqrt(3)*radius) );
         let isOdd = (hexY % 2 == 1);
         let hexX = Math.round((point.x - boardLeft - radius - (isOdd ? radius : 0)) / (2*radius));
-        return {"x": hexX, "y": hexY};
+        return new HexPoint(hexX, hexY);
     };
-
+    
     let hexToPoint = function(hex: HexPoint) : paper.Point
     {
         let isOdd = (100+hex.y) % 2 == 1;
@@ -63,7 +65,6 @@ let Game = function()
         let y = boardTop + radius + (Math.sqrt(3)*radius*hex.y);
         return new paper.Point(x, y);
     };
-
     let adjacentHex = function(hexPoint: HexPoint) : Array<HexPoint>
     {
         let center = hexToPoint(hexPoint);
@@ -86,7 +87,7 @@ let Game = function()
     
         for (let col = 0; col < ballsInThisRow; col++)
         {       
-            let p = hexToPoint({x:col, y:row});
+            let p = hexToPoint(new HexPoint(col, row));
             let bubble = Graphics.Bubble(p, radius);
             r.push(bubble);
         }
@@ -168,14 +169,15 @@ let Game = function()
         hexGrid[hexPoint.y][hexPoint.x] = bubble;
     };
 
-    let fallingBubbles = [];
+    let fallingBubbles : Array<Graphics.Bubble> = [];
 
     // Returns list of connected bubbles in hexCoordinates
-    let findConnected = function(startHex: HexPoint, predicate: (Bubble) => boolean) : Array<HexPoint>
+    let findConnected = function(startHex: HexPoint, predicate: (bubble: Graphics.Bubble) => boolean) : Array<HexPoint>
     {
         let thiskey = JSON.stringify(startHex);
-        let counted = {};
+        let counted : {[key: string]: boolean} = {};
         counted[thiskey] = true;
+        let connected : Array<HexPoint> = [startHex];
         
         let recurse = function(h: HexPoint) : void
         {
@@ -188,6 +190,7 @@ let Game = function()
                 {
                     // connected, same color, not counted!
                     counted[key] = true;
+                    connected.push(list[i]);
                     recurse(list[i]);
                 }
             }
@@ -195,14 +198,14 @@ let Game = function()
 
         recurse(startHex);
 
-        return Object.keys(counted).map(function(key) { return JSON.parse(key); });
+        return connected;
     };
 
     let tryKillBubbles = function(hexPoint: HexPoint) : void
     {
         let thisColorString = getBubble(hexPoint).color.toString();
 
-        let sameColorPredicate = function(bubble)
+        let sameColorPredicate = function(bubble: Graphics.Bubble)
         {
             return bubble.color.toString() == thisColorString;
         };
@@ -228,12 +231,12 @@ let Game = function()
 
             // Kill all dangling
             let topRow = hexGrid[0];
-            let connectedDict = {};
+            let connectedDict : {[key: string] : boolean} = {};
             for (let i = 0; i < topRow.length; i++)
             {
-                if (getBubble(HexPoint(i, 0)))
+                if (getBubble(new HexPoint(i, 0)))
                 {
-                    findConnected({x:i,y:0}, function() { return true; })
+                    findConnected(new HexPoint(i, 0), function() { return true; })
                         .map(function(hexP) { connectedDict[JSON.stringify(hexP)] = true; });
                 }
             }
@@ -242,7 +245,7 @@ let Game = function()
             {
                 for (let j = 0; j < hexGrid[i].length; j++)
                 {
-                    let hexP = {x:j,y:i};
+                    let hexP = new HexPoint(j,i);
                     if (!connectedDict[JSON.stringify(hexP)])
                     {
                         let bubble = hexGrid[i][j];
@@ -264,13 +267,12 @@ let Game = function()
     
     view.onFrame = function(event) {
 
-        let now = Date.now();
-
         for (let i = 0; i < fallingBubbles.length; i++)
         {
             let f = fallingBubbles[i];
-            f.startFallTime = f.startFallTime || now;
-            if (now - f.startFallTime > 5000)
+            let p = f.shape.position;
+            
+            if (p.x > 1000)
             {
                 f.shape.remove();
                 fallingBubbles.splice(i, 1);
@@ -278,7 +280,6 @@ let Game = function()
                 continue;
             }
 
-            let p = f.shape.position;
             f.shape.position = new paper.Point(p.x + f.vx, p.y + f.vy);
             f.vy += 0.5;
         }
@@ -306,7 +307,7 @@ let Game = function()
             {
                 for (let j = hexX - 1; j <= hexX + 1; j++)
                 {
-                    let bubble = getBubble(HexPoint(j, i))
+                    let bubble = getBubble(new HexPoint(j, i))
                     if (bubble)
                     {
                         let bp = bubble.shape.position;
