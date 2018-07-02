@@ -24,6 +24,71 @@ class HexPoint {
     get y() : number { return this._y; }
 };
 
+type BubbleCallback = (bubble : Graphics.Bubble, hexPoint : HexPoint) => void;
+    
+class HexGrid {
+    private grid : Array<Array<Graphics.Bubble>>;
+    
+    constructor() {
+        this.grid = [];
+    }
+
+    public _GET() : Array<Array<Graphics.Bubble>> { return this.grid; }
+
+    public get(hexPoint: HexPoint) : Graphics.Bubble
+    {
+        let row = this.grid[hexPoint.y];
+        if (row)
+        {
+            return row[hexPoint.x];
+        }
+        return null;
+    };
+
+    public set(bubble: Graphics.Bubble, hexPoint: HexPoint) : void
+    {
+        if (hexPoint.x < 0 || hexPoint.y < 0)
+        {
+            throw "no can do";
+        }
+
+        let row = this.grid[hexPoint.y];
+        while (!row)
+        {
+            this.grid.push([]);
+            row = this.grid[hexPoint.y];
+        }
+            
+        let col = row[hexPoint.x];
+        while (typeof col === "undefined")
+        {
+            row.push(null);
+            col = row[hexPoint.x];
+        }
+
+        this.grid[hexPoint.y][hexPoint.x] = bubble;
+    };
+
+    public forEach(callback : BubbleCallback) : void {
+        for (let i = 0; i < this.grid.length; i++) {
+            this.forEachOnRow(i, callback);
+        }
+    }
+
+    public forEachOnRow(rowIndex : number, callback : BubbleCallback) : void {
+        for (let j = 0; j < this.grid[rowIndex].length; j++) {
+            let b = this.grid[rowIndex][j];
+            if (b) {
+                callback(b, new HexPoint(j, rowIndex));
+            }
+        }
+    }
+
+    public remove(hexPoint : HexPoint) : void {
+        this.grid[hexPoint.y][hexPoint.x] = null;
+    }
+}
+
 class HexTransformer {
     private origo: Point;
     private hexRadius: number;
@@ -40,7 +105,7 @@ class HexTransformer {
         return new HexPoint(hexX, hexY);
     }
 
-    public ToPoint(hex: HexPoint) : Point
+    public toPoint(hex: HexPoint) : Point
     {
         let isOdd = (100+hex.y) % 2 == 1;
         let x = this.origo.x + this.hexRadius + (2*this.hexRadius*hex.x) + (isOdd ? this.hexRadius : 0);

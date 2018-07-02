@@ -34,6 +34,54 @@ var HexPoint = /** @class */ (function () {
     return HexPoint;
 }());
 ;
+var HexGrid = /** @class */ (function () {
+    function HexGrid() {
+        this.grid = [];
+    }
+    HexGrid.prototype._GET = function () { return this.grid; };
+    HexGrid.prototype.get = function (hexPoint) {
+        var row = this.grid[hexPoint.y];
+        if (row) {
+            return row[hexPoint.x];
+        }
+        return null;
+    };
+    ;
+    HexGrid.prototype.set = function (bubble, hexPoint) {
+        if (hexPoint.x < 0 || hexPoint.y < 0) {
+            throw "no can do";
+        }
+        var row = this.grid[hexPoint.y];
+        while (!row) {
+            this.grid.push([]);
+            row = this.grid[hexPoint.y];
+        }
+        var col = row[hexPoint.x];
+        while (typeof col === "undefined") {
+            row.push(null);
+            col = row[hexPoint.x];
+        }
+        this.grid[hexPoint.y][hexPoint.x] = bubble;
+    };
+    ;
+    HexGrid.prototype.forEach = function (callback) {
+        for (var i = 0; i < this.grid.length; i++) {
+            this.forEachOnRow(i, callback);
+        }
+    };
+    HexGrid.prototype.forEachOnRow = function (rowIndex, callback) {
+        for (var j = 0; j < this.grid[rowIndex].length; j++) {
+            var b = this.grid[rowIndex][j];
+            if (b) {
+                callback(b, new HexPoint(j, rowIndex));
+            }
+        }
+    };
+    HexGrid.prototype.remove = function (hexPoint) {
+        this.grid[hexPoint.y][hexPoint.x] = null;
+    };
+    return HexGrid;
+}());
 var HexTransformer = /** @class */ (function () {
     function HexTransformer(origo, hexRadius) {
         this.origo = origo;
@@ -45,7 +93,7 @@ var HexTransformer = /** @class */ (function () {
         var hexX = Math.round((point.x - this.origo.x - this.hexRadius - (isOdd ? this.hexRadius : 0)) / (2 * this.hexRadius));
         return new HexPoint(hexX, hexY);
     };
-    HexTransformer.prototype.ToPoint = function (hex) {
+    HexTransformer.prototype.toPoint = function (hex) {
         var isOdd = (100 + hex.y) % 2 == 1;
         var x = this.origo.x + this.hexRadius + (2 * this.hexRadius * hex.x) + (isOdd ? this.hexRadius : 0);
         var y = this.origo.y + this.hexRadius + (Math.sqrt(3) * this.hexRadius * hex.y);
@@ -93,6 +141,16 @@ var Graphics;
     }());
     Graphics.View = View;
     ;
+    var BubbleFactory = /** @class */ (function () {
+        function BubbleFactory(radius) {
+            this.radius = radius;
+        }
+        BubbleFactory.prototype.create = function (point) {
+            return Graphics.Bubble(new paper.Point(point.x, point.y), this.radius);
+        };
+        return BubbleFactory;
+    }());
+    Graphics.BubbleFactory = BubbleFactory;
     Graphics.setupCanvas = function (canvas) {
         paper.install(window);
         paper.setup(canvas);
@@ -129,13 +187,14 @@ var init = function () {
     var boardWidth = ballsPerRow * (radius * 2);
     var boardTop = 30;
     var boardLeft = 20;
-    var hexGrid = [];
+    var newHexGrid = new HexGrid();
+    var hexGrid = newHexGrid._GET();
     var hexTransformer = new HexTransformer(new Point(boardLeft, boardTop), radius);
     var pointToHex = function (point) {
         return hexTransformer.toHex(new Point(point.x, point.y));
     };
     var hexToPoint = function (hex) {
-        var p = hexTransformer.ToPoint(hex);
+        var p = hexTransformer.toPoint(hex);
         return new paper.Point(p.x, p.y);
     };
     var adjacentHex = function (hexPoint) {
@@ -148,31 +207,35 @@ var init = function () {
         }
         return list;
     };
+    // Initialize grid with bubbles
     for (var row = 0; row < ballsPerColumn; row++) {
-        var r = [];
         var isOdd = row % 2 == 1;
         var ballsInThisRow = ballsPerRow - (isOdd ? 1 : 0);
         for (var col = 0; col < ballsInThisRow; col++) {
-            var p = hexToPoint(new HexPoint(col, row));
-            var bubble = Graphics.Bubble(p, radius);
-            r.push(bubble);
+            var hexPoint = new HexPoint(col, row);
+            var bubble = Graphics.Bubble(hexToPoint(hexPoint), radius);
+            newHexGrid.set(bubble, hexPoint);
         }
-        hexGrid.push(r);
     }
     var playerBall = Graphics.Bubble(new paper.Point(boardLeft + ballsPerRow * radius, canvas.height - 3 * radius), radius);
     var fixZIndex = function () {
         var current = null;
-        for (var i = 0; i < hexGrid.length; i++) {
-            for (var j = 0; j < hexGrid[i].length; j++) {
-                var b = hexGrid[i][j];
-                if (b && current) {
-                    b.shape.insertAbove(current.shape);
-                }
-                current = b;
+        newHexGrid.forEach(function (b) {
+            if (current) {
+                b.shape.insertAbove(current.shape);
             }
-        }
+            current = b;
+        });
     };
     var shooting = false;
+    // class BubbleShooter {
+    //     private remainingBubbles : number;
+    //     constructor(remainingBubbles : number,
+    //                 bubbleFactory : Graphics.BubbleFactory,
+    //                 grid : HexGrid) {
+    //         this.remainingBubbles = remainingBubbles;
+    //     }
+    // }
     canvas.onClick(function (point) {
         if (!shooting) {
             Sound.shootSound.stop();
@@ -185,29 +248,6 @@ var init = function () {
             playerBall.vy = vy / dist;
         }
     });
-    var getBubble = function (hexPoint) {
-        var row = hexGrid[hexPoint.y];
-        if (row) {
-            return row[hexPoint.x];
-        }
-        return null;
-    };
-    var setBubble = function (bubble, hexPoint) {
-        if (hexPoint.x < 0 || hexPoint.y < 0) {
-            throw "no can do";
-        }
-        var row = hexGrid[hexPoint.y];
-        while (!row) {
-            hexGrid.push([]);
-            row = hexGrid[hexPoint.y];
-        }
-        var col = row[hexPoint.x];
-        while (typeof col === "undefined") {
-            row.push(null);
-            col = row[hexPoint.x];
-        }
-        hexGrid[hexPoint.y][hexPoint.x] = bubble;
-    };
     var fallingBubbles = [];
     // Returns list of connected bubbles in hexCoordinates
     var findConnected = function (startHex, predicate) {
@@ -216,23 +256,22 @@ var init = function () {
         counted[thiskey] = true;
         var connected = [startHex];
         var recurse = function (h) {
-            var list = adjacentHex(h);
-            for (var i = 0; i < list.length; i++) {
-                var b = getBubble(list[i]);
-                var key = JSON.stringify(list[i]);
+            adjacentHex(h).forEach(function (adjHex) {
+                var b = newHexGrid.get(adjHex);
+                var key = JSON.stringify(adjHex);
                 if (b && !counted[key] && predicate(b)) {
                     // connected, same color, not counted!
                     counted[key] = true;
-                    connected.push(list[i]);
-                    recurse(list[i]);
+                    connected.push(adjHex);
+                    recurse(adjHex);
                 }
-            }
+            });
         };
         recurse(startHex);
         return connected;
     };
     var tryKillBubbles = function (hexPoint) {
-        var thisColorString = getBubble(hexPoint).color.toString();
+        var thisColorString = newHexGrid.get(hexPoint).color.toString();
         var sameColorPredicate = function (bubble) {
             return bubble.color.toString() == thisColorString;
         };
@@ -241,40 +280,31 @@ var init = function () {
         if (connected.length > 2) {
             Sound.fallBubbleSound.stop();
             Sound.fallBubbleSound.play();
-            var shootingBubble = getBubble(hexPoint);
+            var shootingBubble_1 = newHexGrid.get(hexPoint);
             for (var i = 0; i < connected.length; i++) {
                 var hexP = connected[i];
-                var bubble = getBubble(hexP);
+                var bubble = newHexGrid.get(hexP);
                 bubble.shape.bringToFront();
-                bubble.vx = shootingBubble.vx;
-                bubble.vy = shootingBubble.vy;
+                bubble.vx = shootingBubble_1.vx;
+                bubble.vy = shootingBubble_1.vy;
                 fallingBubbles.push(bubble);
-                hexGrid[hexP.y][hexP.x] = null;
+                newHexGrid.remove(hexP);
             }
             // Kill all dangling
-            var topRow = hexGrid[0];
             var connectedDict_1 = {};
-            for (var i = 0; i < topRow.length; i++) {
-                if (getBubble(new HexPoint(i, 0))) {
-                    findConnected(new HexPoint(i, 0), function () { return true; })
-                        .map(function (hexP) { connectedDict_1[JSON.stringify(hexP)] = true; });
+            newHexGrid.forEachOnRow(0, function (b, hexPoint) {
+                findConnected(hexPoint, function () { return true; })
+                    .map(function (hexP) { connectedDict_1[JSON.stringify(hexP)] = true; });
+            });
+            newHexGrid.forEach(function (bubble, hexP) {
+                if (!connectedDict_1[JSON.stringify(hexP)]) {
+                    // This is dangling!            
+                    bubble.vx = shootingBubble_1.vx;
+                    bubble.vy = shootingBubble_1.vy * 0;
+                    fallingBubbles.push(bubble);
+                    newHexGrid.remove(hexP);
                 }
-            }
-            for (var i = 0; i < hexGrid.length; i++) {
-                for (var j = 0; j < hexGrid[i].length; j++) {
-                    var hexP = new HexPoint(j, i);
-                    if (!connectedDict_1[JSON.stringify(hexP)]) {
-                        var bubble = hexGrid[i][j];
-                        if (bubble) {
-                            // This is dangling!            
-                            bubble.vx = shootingBubble.vx;
-                            bubble.vy = shootingBubble.vy * 0;
-                            fallingBubbles.push(bubble);
-                            hexGrid[hexP.y][hexP.x] = null;
-                        }
-                    }
-                }
-            }
+            });
         }
     };
     canvas.onFrame(function () {
@@ -305,13 +335,13 @@ var init = function () {
             var hexY = hexPoint.y;
             for (var i = hexY - 1; i <= hexY + 1; i++) {
                 for (var j = hexX - 1; j <= hexX + 1; j++) {
-                    var bubble = getBubble(new HexPoint(j, i));
+                    var bubble = newHexGrid.get(new HexPoint(j, i));
                     if (bubble) {
                         var bp = bubble.shape.position;
                         var dist = Math.sqrt((bp.x - point.x) * (bp.x - point.x) + (bp.y - point.y) * (bp.y - point.y));
                         if (dist < 2 * radius * 0.9) {
                             // Collision!
-                            setBubble(playerBall, hexPoint);
+                            newHexGrid.set(playerBall, hexPoint);
                             var quant = hexToPoint(hexPoint);
                             var newp = new paper.Point(quant.x, quant.y);
                             playerBall.shape.position = newp;

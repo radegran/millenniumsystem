@@ -62,6 +62,18 @@ namespace Graphics {
         height: number;
     }
 
+    export class BubbleFactory {
+        private radius : number;
+
+        constructor(radius : number) {
+            this.radius = radius;
+        }
+
+        public create(point : Point) : Bubble {
+            return Bubble(new paper.Point(point.x, point.y), this.radius);
+        }
+    }
+
     export let setupCanvas = function(canvas: HTMLCanvasElement) : Canvas
     {
         paper.install(window);

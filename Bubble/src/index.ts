@@ -16,7 +16,9 @@ let init = function()
     let boardTop = 30;
     let boardLeft = 20;
 
-    let hexGrid : Array<Array<Graphics.Bubble>> = [];
+    let newHexGrid = new HexGrid();
+
+    let hexGrid = newHexGrid._GET();
 
     var hexTransformer = new HexTransformer(new Point(boardLeft, boardTop), radius);
 
@@ -27,7 +29,7 @@ let init = function()
     
     let hexToPoint = function(hex: HexPoint) : paper.Point
     {
-        var p = hexTransformer.ToPoint(hex);
+        var p = hexTransformer.toPoint(hex);
         return new paper.Point(p.x, p.y);
     };
     
@@ -45,20 +47,18 @@ let init = function()
         return list;
     };
 
+    // Initialize grid with bubbles
     for (let row = 0; row < ballsPerColumn; row++)
     {        
-        let r = [];
         let isOdd = row % 2 == 1;
         let ballsInThisRow = ballsPerRow - (isOdd ? 1 : 0);
     
         for (let col = 0; col < ballsInThisRow; col++)
         {       
-            let p = hexToPoint(new HexPoint(col, row));
-            let bubble = Graphics.Bubble(p, radius);
-            r.push(bubble);
+            let hexPoint = new HexPoint(col, row);
+            let bubble = Graphics.Bubble(hexToPoint(hexPoint), radius);
+            newHexGrid.set(bubble, hexPoint);
         }
-
-        hexGrid.push(r);
     }
 
     let playerBall = Graphics.Bubble(
@@ -69,22 +69,29 @@ let init = function()
 
     let fixZIndex = function()
     {
-        let current = null;
-        for (let i = 0; i < hexGrid.length; i++)
-        {
-            for (let j = 0; j < hexGrid[i].length; j++)
+        let current : Graphics.Bubble = null;
+        newHexGrid.forEach((b) => {
+            if (current)
             {
-                let b = hexGrid[i][j];
-                if (b && current)
-                {
-                    b.shape.insertAbove(current.shape);
-                }
-                current = b;
+                b.shape.insertAbove(current.shape);
             }
-        }
+            current = b;
+        });
     }
 
     let shooting = false;
+
+    // class BubbleShooter {
+    //     private remainingBubbles : number;
+        
+    //     constructor(remainingBubbles : number,
+    //                 bubbleFactory : Graphics.BubbleFactory,
+    //                 grid : HexGrid) {
+    //         this.remainingBubbles = remainingBubbles;
+    //     }
+
+
+    // }
 
     canvas.onClick(function(point)
     {
@@ -101,40 +108,6 @@ let init = function()
         }        
     });
 
-    let getBubble = function(hexPoint: HexPoint) : Graphics.Bubble
-    {
-        let row = hexGrid[hexPoint.y];
-        if (row)
-        {
-            return row[hexPoint.x];
-        }
-        return null;
-    };
-
-    let setBubble = function(bubble: Graphics.Bubble, hexPoint: HexPoint) : void
-    {
-        if (hexPoint.x < 0 || hexPoint.y < 0)
-        {
-            throw "no can do";
-        }
-
-        let row = hexGrid[hexPoint.y];
-        while (!row)
-        {
-            hexGrid.push([]);
-            row = hexGrid[hexPoint.y];
-        }
-            
-        let col = row[hexPoint.x];
-        while (typeof col === "undefined")
-        {
-            row.push(null);
-            col = row[hexPoint.x];
-        }
-
-        hexGrid[hexPoint.y][hexPoint.x] = bubble;
-    };
-
     let fallingBubbles : Array<Graphics.Bubble> = [];
 
     // Returns list of connected bubbles in hexCoordinates
@@ -147,19 +120,17 @@ let init = function()
         
         let recurse = function(h: HexPoint) : void
         {
-            let list = adjacentHex(h);
-            for (let i = 0; i < list.length; i++)
-            {
-                let b = getBubble(list[i]);
-                let key = JSON.stringify(list[i]);
-                if (b && !counted[key] && predicate(b))
-                {
-                    // connected, same color, not counted!
-                    counted[key] = true;
-                    connected.push(list[i]);
-                    recurse(list[i]);
-                }
-            }
+            adjacentHex(h).forEach(adjHex => {
+                    let b = newHexGrid.get(adjHex);
+                    let key = JSON.stringify(adjHex);
+                    if (b && !counted[key] && predicate(b))
+                    {
+                        // connected, same color, not counted!
+                        counted[key] = true;
+                        connected.push(adjHex);
+                        recurse(adjHex);
+                    }
+                });
         };
 
         recurse(startHex);
@@ -169,7 +140,7 @@ let init = function()
 
     let tryKillBubbles = function(hexPoint: HexPoint) : void
     {
-        let thisColorString = getBubble(hexPoint).color.toString();
+        let thisColorString = newHexGrid.get(hexPoint).color.toString();
 
         let sameColorPredicate = function(bubble: Graphics.Bubble)
         {
@@ -182,53 +153,38 @@ let init = function()
         {
             Sound.fallBubbleSound.stop()
             Sound.fallBubbleSound.play();
-            let shootingBubble = getBubble(hexPoint);
+            let shootingBubble = newHexGrid.get(hexPoint);
 
             for (let i = 0; i < connected.length; i++)
             {
                 let hexP = connected[i];
-                let bubble = getBubble(hexP);
+                let bubble = newHexGrid.get(hexP);
                 bubble.shape.bringToFront();
                 bubble.vx = shootingBubble.vx;
                 bubble.vy = shootingBubble.vy;
                 fallingBubbles.push(bubble);
-                hexGrid[hexP.y][hexP.x] = null;
+                newHexGrid.remove(hexP);
             }
 
             // Kill all dangling
-            let topRow = hexGrid[0];
             let connectedDict : {[key: string] : boolean} = {};
-            for (let i = 0; i < topRow.length; i++)
-            {
-                if (getBubble(new HexPoint(i, 0)))
+
+            newHexGrid.forEachOnRow(0, (b, hexPoint) => {
+                findConnected(hexPoint, function() { return true; })
+                .map(function(hexP) { connectedDict[JSON.stringify(hexP)] = true; });
+            });
+
+            newHexGrid.forEach((bubble, hexP) => {
+                if (!connectedDict[JSON.stringify(hexP)])
                 {
-                    findConnected(new HexPoint(i, 0), function() { return true; })
-                        .map(function(hexP) { connectedDict[JSON.stringify(hexP)] = true; });
+                    // This is dangling!            
+                    bubble.vx = shootingBubble.vx;
+                    bubble.vy = shootingBubble.vy * 0;
+                    fallingBubbles.push(bubble);
+                    newHexGrid.remove(hexP);
                 }
-            }
-
-            for (let i = 0; i < hexGrid.length; i++)
-            {
-                for (let j = 0; j < hexGrid[i].length; j++)
-                {
-                    let hexP = new HexPoint(j,i);
-                    if (!connectedDict[JSON.stringify(hexP)])
-                    {
-                        let bubble = hexGrid[i][j];
-                        if (bubble)
-                        {
-                            // This is dangling!            
-                            bubble.vx = shootingBubble.vx;
-                            bubble.vy = shootingBubble.vy * 0;
-                            fallingBubbles.push(bubble);
-                            hexGrid[hexP.y][hexP.x] = null;
-                        }
-                    }
-                }    
-            }
+            });
         }
-
-
     };
     
     canvas.onFrame(function() {
@@ -273,7 +229,7 @@ let init = function()
             {
                 for (let j = hexX - 1; j <= hexX + 1; j++)
                 {
-                    let bubble = getBubble(new HexPoint(j, i))
+                    let bubble = newHexGrid.get(new HexPoint(j, i))
                     if (bubble)
                     {
                         let bp = bubble.shape.position;
@@ -281,7 +237,7 @@ let init = function()
                         if (dist < 2*radius*0.9)
                         {
                             // Collision!
-                            setBubble(playerBall, hexPoint);
+                            newHexGrid.set(playerBall, hexPoint);
                             let quant = hexToPoint(hexPoint);
                             let newp = new paper.Point(quant.x, quant.y);
                             playerBall.shape.position = newp;
