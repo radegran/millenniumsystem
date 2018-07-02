@@ -16,33 +16,68 @@ namespace Graphics {
         return Colors[Math.floor(Math.random()*Colors.length)];
     };
 
-    export type Bubble = {
-        shape: paper.Group,
-        color: string,
-        vx: number,
-        vy: number
-    }
+    // export type Bubble = {
+    //     shape: paper.Group,
+    //     color: string,
+    //     vx: number,
+    //     vy: number
+    // }
     
-    export let Bubble = function(point: paper.Point, radius: number, fill?: string) : Bubble
+    export class Bubble
     {
-        let s = new paper.Path.Circle(point.clone().add([4, 4]), radius);
-        let shape = new paper.Path.Circle(point.clone(), radius);
-        let fillColor = fill || getRandomColor();
-    
-        let group = new paper.Group({
-            children: [s, shape]
-        });
+        private group : paper.Group;
+        private _velocity : Point;
+        private _color : string;
 
-        group.fillColor = fillColor
-        group.translate(new paper.Point(-2, -2));
-        s.fillColor = "black";
-        
-        return {
-            shape: group,
-            color: fillColor,
-            vx: 0,
-            vy: 0
-        };
+        constructor(point: Point, radius: number, fill?: string)
+        {
+            let paperPoint = new paper.Point(point.x, point.y);
+            let s = new paper.Path.Circle(paperPoint.clone().add([4, 4]), radius);
+            let shape = new paper.Path.Circle(paperPoint, radius);
+            this._color = fill || getRandomColor();
+            
+            this.group = new paper.Group({
+                children: [s, shape]
+            });
+            
+            this.group.fillColor = this._color;
+            this.group.translate(new paper.Point(-2, -2));
+            s.fillColor = "black";            
+        }
+
+        set position(point : Point) {
+            this.group.position.x = point.x;
+            this.group.position.y = point.y;
+        }
+
+        get position() : Point {
+            let pos = this.group.position;
+            return new Point(pos.x, pos.y);
+        }
+
+        set velocity(point : Point) {
+            this._velocity = point;
+        }
+
+        get velocity() : Point {
+            return this._velocity;
+        }
+
+        get color() : string {
+            return this._color;
+        }
+
+        public bringToFront() : void {
+            this.group.bringToFront();
+        }
+
+        public remove() : void {
+            this.group.remove();
+        }
+
+        public insertAbove(other : Bubble) : void {
+            this.group.insertAbove(other.group);
+        }
     };
 
     export class View 
@@ -70,7 +105,7 @@ namespace Graphics {
         }
 
         public create(point : Point) : Bubble {
-            return Bubble(new paper.Point(point.x, point.y), this.radius);
+            return new Bubble(new Point(point.x, point.y), this.radius);
         }
     }
 
@@ -93,5 +128,16 @@ namespace Graphics {
         };
     };
 
+    export let fixZIndex = function(hexGrid : HexGrid)
+    {
+        let current : Graphics.Bubble = null;
+        hexGrid.forEach((b) => {
+            if (current)
+            {
+                b.insertAbove(current);
+            }
+            current = b;
+        });
+    }
 
 }

@@ -115,23 +115,67 @@ var Graphics;
     Graphics.getRandomColor = function () {
         return Graphics.Colors[Math.floor(Math.random() * Graphics.Colors.length)];
     };
-    Graphics.Bubble = function (point, radius, fill) {
-        var s = new paper.Path.Circle(point.clone().add([4, 4]), radius);
-        var shape = new paper.Path.Circle(point.clone(), radius);
-        var fillColor = fill || Graphics.getRandomColor();
-        var group = new paper.Group({
-            children: [s, shape]
+    // export type Bubble = {
+    //     shape: paper.Group,
+    //     color: string,
+    //     vx: number,
+    //     vy: number
+    // }
+    var Bubble = /** @class */ (function () {
+        function Bubble(point, radius, fill) {
+            var paperPoint = new paper.Point(point.x, point.y);
+            var s = new paper.Path.Circle(paperPoint.clone().add([4, 4]), radius);
+            var shape = new paper.Path.Circle(paperPoint, radius);
+            this._color = fill || Graphics.getRandomColor();
+            this.group = new paper.Group({
+                children: [s, shape]
+            });
+            this.group.fillColor = this._color;
+            this.group.translate(new paper.Point(-2, -2));
+            s.fillColor = "black";
+        }
+        Object.defineProperty(Bubble.prototype, "position", {
+            get: function () {
+                var pos = this.group.position;
+                return new Point(pos.x, pos.y);
+            },
+            set: function (point) {
+                this.group.position.x = point.x;
+                this.group.position.y = point.y;
+            },
+            enumerable: true,
+            configurable: true
         });
-        group.fillColor = fillColor;
-        group.translate(new paper.Point(-2, -2));
-        s.fillColor = "black";
-        return {
-            shape: group,
-            color: fillColor,
-            vx: 0,
-            vy: 0
+        Object.defineProperty(Bubble.prototype, "velocity", {
+            get: function () {
+                return this._velocity;
+            },
+            set: function (point) {
+                this._velocity = point;
+            },
+            enumerable: true,
+            configurable: true
+        });
+        Object.defineProperty(Bubble.prototype, "color", {
+            get: function () {
+                return this._color;
+            },
+            enumerable: true,
+            configurable: true
+        });
+        Bubble.prototype.bringToFront = function () {
+            this.group.bringToFront();
         };
-    };
+        Bubble.prototype.remove = function () {
+            this.group.remove();
+        };
+        Bubble.prototype.insertAbove = function (other) {
+            this.group.insertAbove(other.group);
+        };
+        return Bubble;
+    }());
+    Graphics.Bubble = Bubble;
+    ;
     var View = /** @class */ (function () {
         function View(canvas) {
             this.canvas = canvas;
@@ -145,7 +189,7 @@ var Graphics;
             this.radius = radius;
         }
         BubbleFactory.prototype.create = function (point) {
-            return Graphics.Bubble(new paper.Point(point.x, point.y), this.radius);
+            return new Bubble(new Point(point.x, point.y), this.radius);
         };
         return BubbleFactory;
     }());
@@ -165,6 +209,15 @@ var Graphics;
             width: window.innerWidth,
             height: window.innerHeight
         };
+    };
+    Graphics.fixZIndex = function (hexGrid) {
+        var current = null;
+        hexGrid.forEach(function (b) {
+            if (current) {
+                b.insertAbove(current);
+            }
+            current = b;
+        });
     };
 })(Graphics || (Graphics = {}));
 /// <reference path="../types/buzz.d.ts"/>
@@ -186,14 +239,14 @@ var init = function () {
     var boardWidth = ballsPerRow * (radius * 2);
     var boardTop = 30;
     var boardLeft = 20;
-    var newHexGrid = new HexGrid();
+    var hexGrid = new HexGrid();
     var hexTransformer = new HexTransformer(new Point(boardLeft, boardTop), radius);
     var pointToHex = function (point) {
         return hexTransformer.toHex(new Point(point.x, point.y));
     };
     var hexToPoint = function (hex) {
         var p = hexTransformer.toPoint(hex);
-        return new paper.Point(p.x, p.y);
+        return new Point(p.x, p.y);
     };
     var adjacentHex = function (hexPoint) {
         var center = hexToPoint(hexPoint);
@@ -201,7 +254,7 @@ var init = function () {
         for (var i = 0; i < 6; i++) {
             var x = center.x + 2 * radius * Math.cos(2 * 3.1415 * i / 6);
             var y = center.y + 2 * radius * Math.sin(2 * 3.1415 * i / 6);
-            list.push(pointToHex(new paper.Point(x, y)));
+            list.push(pointToHex(new Point(x, y)));
         }
         return list;
     };
@@ -211,20 +264,11 @@ var init = function () {
         var ballsInThisRow = ballsPerRow - (isOdd ? 1 : 0);
         for (var col = 0; col < ballsInThisRow; col++) {
             var hexPoint = new HexPoint(col, row);
-            var bubble = Graphics.Bubble(hexToPoint(hexPoint), radius);
-            newHexGrid.set(bubble, hexPoint);
+            var bubble = new Graphics.Bubble(hexToPoint(hexPoint), radius);
+            hexGrid.set(bubble, hexPoint);
         }
     }
-    var playerBall = Graphics.Bubble(new paper.Point(boardLeft + ballsPerRow * radius, canvas.height - 3 * radius), radius);
-    var fixZIndex = function () {
-        var current = null;
-        newHexGrid.forEach(function (b) {
-            if (current) {
-                b.shape.insertAbove(current.shape);
-            }
-            current = b;
-        });
-    };
+    var playerBall = new Graphics.Bubble(new Point(boardLeft + ballsPerRow * radius, canvas.height - 3 * radius), radius);
     var shooting = false;
     // class BubbleShooter {
     //     private remainingBubbles : number;
@@ -239,11 +283,11 @@ var init = function () {
             Sound.shootSound.stop();
             Sound.shootSound.play();
             shooting = true;
-            var vx = point.x - playerBall.shape.position.x;
-            var vy = point.y - playerBall.shape.position.y;
+            var playerPos = playerBall.position;
+            var vx = point.x - playerPos.x;
+            var vy = point.y - playerPos.y;
             var dist = Math.sqrt(vx * vx + vy * vy) / ballSpeed;
-            playerBall.vx = vx / dist;
-            playerBall.vy = vy / dist;
+            playerBall.velocity = new Point(vx / dist, vy / dist);
         }
     });
     var fallingBubbles = [];
@@ -255,7 +299,7 @@ var init = function () {
         var connected = [startHex];
         var recurse = function (h) {
             adjacentHex(h).forEach(function (adjHex) {
-                var b = newHexGrid.get(adjHex);
+                var b = hexGrid.get(adjHex);
                 var key = JSON.stringify(adjHex);
                 if (b && !counted[key] && predicate(b)) {
                     // connected, same color, not counted!
@@ -269,38 +313,36 @@ var init = function () {
         return connected;
     };
     var tryKillBubbles = function (hexPoint) {
-        var thisColorString = newHexGrid.get(hexPoint).color.toString();
+        var thisColorString = hexGrid.get(hexPoint).color;
         var sameColorPredicate = function (bubble) {
-            return bubble.color.toString() == thisColorString;
+            return bubble.color == thisColorString;
         };
         // Kill all with same color
         var connected = findConnected(hexPoint, sameColorPredicate);
         if (connected.length > 2) {
             Sound.fallBubbleSound.stop();
             Sound.fallBubbleSound.play();
-            var shootingBubble_1 = newHexGrid.get(hexPoint);
+            var shootingBubble_1 = hexGrid.get(hexPoint);
             for (var i = 0; i < connected.length; i++) {
                 var hexP = connected[i];
-                var bubble = newHexGrid.get(hexP);
-                bubble.shape.bringToFront();
-                bubble.vx = shootingBubble_1.vx;
-                bubble.vy = shootingBubble_1.vy;
+                var bubble = hexGrid.get(hexP);
+                bubble.bringToFront();
+                bubble.velocity = shootingBubble_1.velocity;
                 fallingBubbles.push(bubble);
-                newHexGrid.remove(hexP);
+                hexGrid.remove(hexP);
             }
             // Kill all dangling
             var connectedDict_1 = {};
-            newHexGrid.forEachOnRow(0, function (b, hexPoint) {
+            hexGrid.forEachOnRow(0, function (b, hexPoint) {
                 findConnected(hexPoint, function () { return true; })
                     .map(function (hexP) { connectedDict_1[JSON.stringify(hexP)] = true; });
             });
-            newHexGrid.forEach(function (bubble, hexP) {
+            hexGrid.forEach(function (bubble, hexP) {
                 if (!connectedDict_1[JSON.stringify(hexP)]) {
                     // This is dangling!            
-                    bubble.vx = shootingBubble_1.vx;
-                    bubble.vy = shootingBubble_1.vy * 0;
+                    bubble.velocity = new Point(shootingBubble_1.velocity.x, 0);
                     fallingBubbles.push(bubble);
-                    newHexGrid.remove(hexP);
+                    hexGrid.remove(hexP);
                 }
             });
         }
@@ -308,44 +350,44 @@ var init = function () {
     canvas.onFrame(function () {
         for (var i = 0; i < fallingBubbles.length; i++) {
             var f = fallingBubbles[i];
-            var p = f.shape.position;
+            var p = f.position;
             if (p.x > 1000) {
-                f.shape.remove();
+                f.remove();
                 fallingBubbles.splice(i, 1);
                 i--;
                 continue;
             }
-            f.shape.position = new paper.Point(p.x + f.vx, p.y + f.vy);
-            f.vy += 0.5;
+            var fVelocity = f.velocity;
+            f.position = new Point(p.x + fVelocity.x, p.y + f.velocity.y);
+            f.velocity = new Point(fVelocity.x, fVelocity.y + 0.5);
         }
         if (shooting) {
             // update velocity
-            var p = playerBall.shape.position;
-            playerBall.shape.position = new paper.Point(p.x + playerBall.vx, p.y + playerBall.vy);
-            p = playerBall.shape.position;
+            var p = playerBall.position;
             if (p.x < (boardLeft + radius) || p.x > (boardLeft + boardWidth - radius)) {
-                playerBall.vx = -playerBall.vx;
+                var v_1 = playerBall.velocity;
+                playerBall.velocity = new Point(-v_1.x, v_1.y);
             }
+            var v = playerBall.velocity;
+            playerBall.position = new Point(p.x + v.x, p.y + v.y);
             // collision test
-            var point = playerBall.shape.position;
+            var point = playerBall.position;
             var hexPoint = pointToHex(point);
             var hexX = hexPoint.x;
             var hexY = hexPoint.y;
             for (var i = hexY - 1; i <= hexY + 1; i++) {
                 for (var j = hexX - 1; j <= hexX + 1; j++) {
-                    var bubble = newHexGrid.get(new HexPoint(j, i));
+                    var bubble = hexGrid.get(new HexPoint(j, i));
                     if (bubble) {
-                        var bp = bubble.shape.position;
+                        var bp = bubble.position;
                         var dist = Math.sqrt((bp.x - point.x) * (bp.x - point.x) + (bp.y - point.y) * (bp.y - point.y));
                         if (dist < 2 * radius * 0.9) {
                             // Collision!
-                            newHexGrid.set(playerBall, hexPoint);
-                            var quant = hexToPoint(hexPoint);
-                            var newp = new paper.Point(quant.x, quant.y);
-                            playerBall.shape.position = newp;
-                            playerBall = Graphics.Bubble(new paper.Point(boardLeft + ballsPerRow * radius, canvas.height - 3 * radius), radius);
+                            hexGrid.set(playerBall, hexPoint);
+                            playerBall.position = hexToPoint(hexPoint);
+                            playerBall = new Graphics.Bubble(new Point(boardLeft + ballsPerRow * radius, canvas.height - 3 * radius), radius);
                             shooting = false;
-                            fixZIndex();
+                            Graphics.fixZIndex(hexGrid);
                             tryKillBubbles(hexPoint);
                             return;
                         }
