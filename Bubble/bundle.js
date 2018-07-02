@@ -38,7 +38,6 @@ var HexGrid = /** @class */ (function () {
     function HexGrid() {
         this.grid = [];
     }
-    HexGrid.prototype._GET = function () { return this.grid; };
     HexGrid.prototype.get = function (hexPoint) {
         var row = this.grid[hexPoint.y];
         if (row) {
@@ -188,7 +187,6 @@ var init = function () {
     var boardTop = 30;
     var boardLeft = 20;
     var newHexGrid = new HexGrid();
-    var hexGrid = newHexGrid._GET();
     var hexTransformer = new HexTransformer(new Point(boardLeft, boardTop), radius);
     var pointToHex = function (point) {
         return hexTransformer.toHex(new Point(point.x, point.y));

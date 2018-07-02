@@ -25,15 +25,13 @@ class HexPoint {
 };
 
 type BubbleCallback = (bubble : Graphics.Bubble, hexPoint : HexPoint) => void;
-    
+
 class HexGrid {
     private grid : Array<Array<Graphics.Bubble>>;
     
     constructor() {
         this.grid = [];
     }
-
-    public _GET() : Array<Array<Graphics.Bubble>> { return this.grid; }
 
     public get(hexPoint: HexPoint) : Graphics.Bubble
     {

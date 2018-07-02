@@ -17,9 +17,6 @@ let init = function()
     let boardLeft = 20;
 
     let newHexGrid = new HexGrid();
-
-    let hexGrid = newHexGrid._GET();
-
     var hexTransformer = new HexTransformer(new Point(boardLeft, boardTop), radius);
 
     let pointToHex = function(point: paper.Point) : HexPoint
