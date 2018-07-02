@@ -87,7 +87,7 @@ class HexGrid {
     }
 }
 
-class HexTransformer {
+class HexConvert {
     private origo: Point;
     private hexRadius: number;
 

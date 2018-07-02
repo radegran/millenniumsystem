@@ -17,29 +17,18 @@ let init = function()
     let boardLeft = 20;
 
     let hexGrid = new HexGrid();
-    var hexTransformer = new HexTransformer(new Point(boardLeft, boardTop), radius);
-
-    let pointToHex = function(point: Point) : HexPoint
-    {
-        return hexTransformer.toHex(new Point(point.x, point.y));
-    };
-    
-    let hexToPoint = function(hex: HexPoint) : Point
-    {
-        var p = hexTransformer.toPoint(hex);
-        return new Point(p.x, p.y);
-    };
+    var hexConvert = new HexConvert(new Point(boardLeft, boardTop), radius);
     
     let adjacentHex = function(hexPoint: HexPoint) : Array<HexPoint>
     {
-        let center = hexToPoint(hexPoint);
+        let center = hexConvert.toPoint(hexPoint);
         let list = [];
         for (let i = 0; i < 6; i++)
         {
             let x = center.x + 2*radius*Math.cos(2*3.1415*i/6);
             let y = center.y + 2*radius*Math.sin(2*3.1415*i/6);
 
-            list.push(pointToHex(new Point(x, y)));
+            list.push(hexConvert.toHex(new Point(x, y)));
         }
         return list;
     };
@@ -53,7 +42,7 @@ let init = function()
         for (let col = 0; col < ballsInThisRow; col++)
         {       
             let hexPoint = new HexPoint(col, row);
-            let bubble = new Graphics.Bubble(hexToPoint(hexPoint), radius);
+            let bubble = new Graphics.Bubble(hexConvert.toPoint(hexPoint), radius);
             hexGrid.set(bubble, hexPoint);
         }
     }
@@ -203,10 +192,9 @@ let init = function()
             let v = playerBall.velocity;
             playerBall.position = new Point(p.x + v.x, p.y + v.y);
             
-
             // collision test
             let point = playerBall.position;
-            let hexPoint = pointToHex(point);
+            let hexPoint = hexConvert.toHex(point);
             let hexX = hexPoint.x;
             let hexY = hexPoint.y;
 
@@ -223,7 +211,7 @@ let init = function()
                         {
                             // Collision!
                             hexGrid.set(playerBall, hexPoint);
-                            playerBall.position = hexToPoint(hexPoint);
+                            playerBall.position = hexConvert.toPoint(hexPoint);
 
                             playerBall = new Graphics.Bubble(
                                 new Point(boardLeft + ballsPerRow*radius,

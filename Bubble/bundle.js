@@ -81,25 +81,25 @@ var HexGrid = /** @class */ (function () {
     };
     return HexGrid;
 }());
-var HexTransformer = /** @class */ (function () {
-    function HexTransformer(origo, hexRadius) {
+var HexConvert = /** @class */ (function () {
+    function HexConvert(origo, hexRadius) {
         this.origo = origo;
         this.hexRadius = hexRadius;
     }
-    HexTransformer.prototype.toHex = function (point) {
+    HexConvert.prototype.toHex = function (point) {
         var hexY = Math.round((point.y - this.origo.y - this.hexRadius) / (Math.sqrt(3) * this.hexRadius));
         var isOdd = (hexY % 2 == 1);
         var hexX = Math.round((point.x - this.origo.x - this.hexRadius - (isOdd ? this.hexRadius : 0)) / (2 * this.hexRadius));
         return new HexPoint(hexX, hexY);
     };
-    HexTransformer.prototype.toPoint = function (hex) {
+    HexConvert.prototype.toPoint = function (hex) {
         var isOdd = (100 + hex.y) % 2 == 1;
         var x = this.origo.x + this.hexRadius + (2 * this.hexRadius * hex.x) + (isOdd ? this.hexRadius : 0);
         var y = this.origo.y + this.hexRadius + (Math.sqrt(3) * this.hexRadius * hex.y);
         return new Point(x, y);
     };
     ;
-    return HexTransformer;
+    return HexConvert;
 }());
 var Graphics;
 (function (Graphics) {
@@ -240,21 +240,14 @@ var init = function () {
     var boardTop = 30;
     var boardLeft = 20;
     var hexGrid = new HexGrid();
-    var hexTransformer = new HexTransformer(new Point(boardLeft, boardTop), radius);
-    var pointToHex = function (point) {
-        return hexTransformer.toHex(new Point(point.x, point.y));
-    };
-    var hexToPoint = function (hex) {
-        var p = hexTransformer.toPoint(hex);
-        return new Point(p.x, p.y);
-    };
+    var hexConvert = new HexConvert(new Point(boardLeft, boardTop), radius);
     var adjacentHex = function (hexPoint) {
-        var center = hexToPoint(hexPoint);
+        var center = hexConvert.toPoint(hexPoint);
         var list = [];
         for (var i = 0; i < 6; i++) {
             var x = center.x + 2 * radius * Math.cos(2 * 3.1415 * i / 6);
             var y = center.y + 2 * radius * Math.sin(2 * 3.1415 * i / 6);
-            list.push(pointToHex(new Point(x, y)));
+            list.push(hexConvert.toHex(new Point(x, y)));
         }
         return list;
     };
@@ -264,7 +257,7 @@ var init = function () {
         var ballsInThisRow = ballsPerRow - (isOdd ? 1 : 0);
         for (var col = 0; col < ballsInThisRow; col++) {
             var hexPoint = new HexPoint(col, row);
-            var bubble = new Graphics.Bubble(hexToPoint(hexPoint), radius);
+            var bubble = new Graphics.Bubble(hexConvert.toPoint(hexPoint), radius);
             hexGrid.set(bubble, hexPoint);
         }
     }
@@ -372,7 +365,7 @@ var init = function () {
             playerBall.position = new Point(p.x + v.x, p.y + v.y);
             // collision test
             var point = playerBall.position;
-            var hexPoint = pointToHex(point);
+            var hexPoint = hexConvert.toHex(point);
             var hexX = hexPoint.x;
             var hexY = hexPoint.y;
             for (var i = hexY - 1; i <= hexY + 1; i++) {
@@ -384,7 +377,7 @@ var init = function () {
                         if (dist < 2 * radius * 0.9) {
                             // Collision!
                             hexGrid.set(playerBall, hexPoint);
-                            playerBall.position = hexToPoint(hexPoint);
+                            playerBall.position = hexConvert.toPoint(hexPoint);
                             playerBall = new Graphics.Bubble(new Point(boardLeft + ballsPerRow * radius, canvas.height - 3 * radius), radius);
                             shooting = false;
                             Graphics.fixZIndex(hexGrid);
